@@ -1,14 +1,21 @@
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include "CImg.h"
+
 
 #include <iostream>
+#include <typeinfo>
 
+
+using namespace cimg_library;
 
 int main()
 {
-  cv::Mat image;
-  std::cout << "this worked lol" << std::endl;
+  CImg<unsigned char> image("duck.png");
+  image.display("duck");
+  std::cout << "Width " << image.width() << std::endl;
+  std::cout << "Height " << image.height() << std::endl;
+  std::cout << "Depth " << image.depth() << std::endl;
+  std::cout << "Color channels " << image.spectrum() << std::endl;
 
   return 0;
 }
