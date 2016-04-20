@@ -1,4 +1,4 @@
-SRCLIST = test
+SRCLIST = imagequilt_serial
 EXECNAME = out
 
 
@@ -6,9 +6,9 @@ SRCDIR=src
 INCDIR=../includes
 OBJDIR=obj
 
-CC=g++
+CC=g++ -m64
 
-CFLAGS=-I $(INCDIR)
+CFLAGS=-I $(INCDIR) -O3 -Wall
 LFLAGS=-L/usr/X11R6/lib
 LIBS=-lm -lpthread -lX11
 
