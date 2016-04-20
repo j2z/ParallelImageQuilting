@@ -39,20 +39,41 @@ int main(int argc, char* argv[])
     return 0;
   }
   
-  CImg<int> image(argv[1]);
-  CImg<int> im2(image);
+  CImg<int> texture_image(argv[1]);
 
-  std::cout << ssd(image, im2) << std::endl;
+  const int texture_height = texture_image.height();
+  const int texture_width = texture_image.width();
 
-  image.display();
+  const int output_height = HEIGHT_TILES * TILE_HEIGHT_REM;
+  const int output_width = WIDTH_TILES * TILE_WIDTH_REM;
 
+  CImg<int> output(output_width, output_height, 1, 3);
 
-  for (int j = 1; j < HEIGHT_TILES; j++)
+  
+
+  for (int j = 0; j < HEIGHT_TILES; j++)
   {
-    for (int i = 1; i < WIDTH_TILES; i++)
+    for (int i = 0; i < WIDTH_TILES; i++)
     {
-      
+      const int patchX = std::rand() % (texture_width - TILE_WIDTH);
+      const int patchY = std::rand() % (texture_height - TILE_HEIGHT);
+
+      const int outX = i * TILE_WIDTH_REM;
+      const int outY = j * TILE_HEIGHT_REM;
+
+      for (int x = 0; x < TILE_WIDTH_REM; x++)
+      {
+        for (int y = 0; y < TILE_HEIGHT_REM; y++)
+        {
+          output(outX + x, outY + y, 0) = texture_image(patchX + x, patchY + y, 0);
+          output(outX + x, outY + y, 1) = texture_image(patchX + x, patchY + y, 1);
+          output(outX + x, outY + y, 2) = texture_image(patchX + x, patchY + y, 2);
+        }
+      }
+
     }
   }
+
+  output.display();
 
 }
