@@ -1,4 +1,4 @@
-SRCLIST = imagequilt_serial
+SRCLIST = imagequilt_serial tile_stitch
 EXECNAME = out
 
 

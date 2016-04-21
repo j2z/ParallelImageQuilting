@@ -3,6 +3,7 @@
 #include "CImg.h"
 
 #include <iostream>
+#include <ctime>
 
 
 #define TILE_HEIGHT 60
@@ -18,10 +19,12 @@
 
 using namespace cimg_library;
 
+void vertical_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y2, int w, int h, int seam[]);
 
 static inline void disp_help()
 {
-  std::cout << "Needs 1 argument: filename of texture image (JPEG)" << std::endl;
+  std::cout << "Arg 1: filename of texture image (JPEG)" << std::endl;
+  std::cout << "Arg 2: filename for output file (JPEG)" << std::endl;
 }
 
 // 2 images of same size 
@@ -56,22 +59,28 @@ int main(int argc, char* argv[])
     disp_help();
     return 0;
   }
+
+  // set up PRNG
+  std::srand(time(NULL));
   
   CImg<int> texture_image(argv[1]);
 
   const int texture_height = texture_image.height();
   const int texture_width = texture_image.width();
 
-  const int output_height = HEIGHT_TILES * TILE_HEIGHT_REM;
-  const int output_width = WIDTH_TILES * TILE_WIDTH_REM;
+  const int output_height = HEIGHT_TILES * TILE_HEIGHT_REM + OVERLAP;
+  const int output_width = WIDTH_TILES * TILE_WIDTH_REM + OVERLAP;
 
-  CImg<int> output(output_width + OVERLAP, output_height + OVERLAP, 1, 3);
+  CImg<int> output(output_width, output_height, 1, 3);
 
   int patchSSDs[texture_width-TILE_WIDTH][texture_height-TILE_HEIGHT];
+  int vertical_seam[TILE_HEIGHT];
+  int horizontal_seam[TILE_WIDTH];
 
   // random seed patch
   const int patchX = std::rand() % (texture_width - TILE_WIDTH);
   const int patchY = std::rand() % (texture_height - TILE_HEIGHT);
+
   for (int channel = 0; channel < 3; channel++)
   {
     for (int y = 0; y < TILE_HEIGHT; y++)
@@ -140,6 +149,7 @@ int main(int argc, char* argv[])
       }
 
 
+
       // choose a good matching patch
       int patchX = 0;
       int patchY = 0;
@@ -156,17 +166,40 @@ int main(int argc, char* argv[])
         }
       }
 
-      // copy patch over
-      for (int channel = 0; channel < 3; channel++)
+      if (i == 0)
       {
-        for (int y = 0; y < TILE_HEIGHT; y++)
+        // copy patch over
+        for (int channel = 0; channel < 3; channel++)
         {
-          for (int x = 0; x < TILE_WIDTH; x++)
+          for (int y = 0; y < TILE_HEIGHT; y++)
           {
-            output(outX + x, outY + y, channel) = texture_image(patchX + x, patchY + y, channel);
+            for (int x = 0; x < TILE_WIDTH; x++)
+            {
+              output(outX + x, outY + y, channel) = texture_image(patchX + x, patchY + y, channel);
+            }
           }
         }
       }
+      else
+      {
+        // copy based on seam
+        vertical_stitch(texture_image, output,
+                        patchX, patchY,
+                        outX, outY,
+                        OVERLAP, TILE_HEIGHT, vertical_seam);
+        for (int channel = 0; channel < 3; channel++)
+        {
+          for (int y = 0; y < TILE_HEIGHT; y++)
+          {
+            for (int x = vertical_seam[y]; x < TILE_WIDTH; x++)
+            {
+              output(outX + x, outY + y, channel) = texture_image(patchX + x, patchY + y, channel);
+            }
+          }
+        }
+      }
+
+
       std::cout << "Tile " << i << ", " << j << " done" << std::endl;
       std::cout << "Pulled from " << patchX << ", " << patchY << std::endl;
       output.save("output.jpg", j*WIDTH_TILES + i, 2);
@@ -174,5 +207,12 @@ int main(int argc, char* argv[])
 
   }
 
-
+  if (argc < 3)
+  {
+    output.display();
+  }
+  else
+  {
+    output.save(argv[2]);
+  }
 }
