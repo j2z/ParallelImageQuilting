@@ -6,20 +6,21 @@
 #include <ctime>
 
 
-#define TILE_HEIGHT 60
-#define TILE_WIDTH 60
-#define OVERLAP 10
+#define TILE_HEIGHT 200
+#define TILE_WIDTH 200
+#define OVERLAP 50
 
 #define TILE_HEIGHT_REM (TILE_HEIGHT - OVERLAP)
 #define TILE_WIDTH_REM (TILE_WIDTH - OVERLAP)
 
-#define WIDTH_TILES 3
-#define HEIGHT_TILES 3
+#define WIDTH_TILES 2
+#define HEIGHT_TILES 2
 
 
 using namespace cimg_library;
 
 void vertical_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y2, int w, int h, int seam[]);
+void horizontal_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y2, int w, int h, int seam[]);
 
 static inline void disp_help()
 {
@@ -166,39 +167,41 @@ int main(int argc, char* argv[])
         }
       }
 
-      if (i == 0)
+      // copy based on seam
+      if (i != 0)
       {
-        // copy patch over
-        for (int channel = 0; channel < 3; channel++)
-        {
-          for (int y = 0; y < TILE_HEIGHT; y++)
-          {
-            for (int x = 0; x < TILE_WIDTH; x++)
-            {
-              output(outX + x, outY + y, channel) = texture_image(patchX + x, patchY + y, channel);
-            }
-          }
-        }
-      }
-      else
-      {
-        // copy based on seam
         vertical_stitch(texture_image, output,
                         patchX, patchY,
                         outX, outY,
                         OVERLAP, TILE_HEIGHT, vertical_seam);
-        for (int channel = 0; channel < 3; channel++)
+      }
+      if (j != 0)
+      {
+        horizontal_stitch(texture_image, output,
+                          patchX, patchY,
+                          outX, outY,
+                          TILE_WIDTH, OVERLAP, horizontal_seam);
+      }
+      for (int channel = 0; channel < 3; channel++)
+      {
+        for (int y = 0; y < TILE_HEIGHT; y++)
         {
-          for (int y = 0; y < TILE_HEIGHT; y++)
+          int x_init = 0;
+          if (i != 0)
           {
-            for (int x = vertical_seam[y]; x < TILE_WIDTH; x++)
+            x_init = vertical_seam[y];
+          }
+          for (int x = x_init; x < TILE_WIDTH; x++)
+          {
+            if (j == 0 || y > horizontal_seam[x])
             {
               output(outX + x, outY + y, channel) = texture_image(patchX + x, patchY + y, channel);
             }
+            //if (j != 0) output(outX + x, outY + horizontal_seam[x], channel) = 255;
           }
+          //if (i != 0) output(outX + vertical_seam[y], outY + y, channel) = 255;
         }
       }
-
 
       std::cout << "Tile " << i << ", " << j << " done" << std::endl;
       std::cout << "Pulled from " << patchX << ", " << patchY << std::endl;
