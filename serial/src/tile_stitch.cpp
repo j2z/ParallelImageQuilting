@@ -20,7 +20,7 @@ void vertical_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y
     {
       for (int i = 0; i < w; i++)
       {
-        float diff = im1(i,j,channel) - im2(i,j,channel);
+        float diff = im1(i+x1,j,channel) - im2(i+x2,j,channel);
         error_map[j][i] += diff * diff;
       }
     }

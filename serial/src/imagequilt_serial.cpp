@@ -13,8 +13,8 @@
 #define TILE_HEIGHT_REM (TILE_HEIGHT - OVERLAP)
 #define TILE_WIDTH_REM (TILE_WIDTH - OVERLAP)
 
-#define WIDTH_TILES 5
-#define HEIGHT_TILES 5
+#define WIDTH_TILES 3
+#define HEIGHT_TILES 3
 
 
 using namespace cimg_library;
