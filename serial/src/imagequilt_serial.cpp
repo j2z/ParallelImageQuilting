@@ -6,15 +6,15 @@
 #include <ctime>
 
 
-#define TILE_HEIGHT 200
-#define TILE_WIDTH 200
-#define OVERLAP 50
+#define TILE_HEIGHT 60
+#define TILE_WIDTH 60
+#define OVERLAP 10
 
 #define TILE_HEIGHT_REM (TILE_HEIGHT - OVERLAP)
 #define TILE_WIDTH_REM (TILE_WIDTH - OVERLAP)
 
-#define WIDTH_TILES 2
-#define HEIGHT_TILES 2
+#define WIDTH_TILES 5
+#define HEIGHT_TILES 5
 
 
 using namespace cimg_library;
