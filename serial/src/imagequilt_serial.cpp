@@ -6,9 +6,9 @@
 #include <ctime>
 
 
-#define TILE_HEIGHT 60
-#define TILE_WIDTH 60
-#define OVERLAP 10
+#define TILE_HEIGHT 36
+#define TILE_WIDTH 36
+#define OVERLAP 6
 
 #define TILE_HEIGHT_REM (TILE_HEIGHT - OVERLAP)
 #define TILE_WIDTH_REM (TILE_WIDTH - OVERLAP)
