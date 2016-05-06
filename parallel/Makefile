@@ -1,6 +1,7 @@
-SRCLIST = polar_transform patch_copy sample error_map copytest
-EXECNAME = out
-CUDASRCLIST =
+SRCLIST = polar_transform patch_copy sample error_map main
+#SRCLIST = polar_transform patch_copy sample error_map copytest
+EXECNAME = ImageQuilt
+CUDASRCLIST = imagequilt_cuda
 
 
 SRCDIR=src
@@ -11,8 +12,7 @@ CC=g++ -m64
 
 CFLAGS=-I $(INCDIR) -O3 -Wall
 LFLAGS=-L/usr/X11R6/lib
-#LIBS=-lm -lpthread -lX11 -L/usr/local/depot/cuda-6.5/lib64/ -lcudart
-LIBS=-lm -lpthread -lX11 -L/usr/local/depot/cuda-6.5/lib64/
+LIBS=-lm -lpthread -lX11 -L/usr/local/depot/cuda-6.5/lib64/ -lcudart
 NVCC=nvcc -arch=sm_20
 NVCCFLAGS=-O3 -m64
 
