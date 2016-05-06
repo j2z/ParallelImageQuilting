@@ -1,6 +1,6 @@
-SRCLIST = test
-EXECNAME = out
-CUDASRCLIST = scan
+SRCLIST = main
+EXECNAME = ImageQuilt
+CUDASRCLIST = imagequilt_cuda
 
 
 SRCDIR=src
