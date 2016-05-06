@@ -1,6 +1,6 @@
-SRCLIST = test
+SRCLIST = polar_transform patch_copy sample error_map copytest
 EXECNAME = out
-CUDASRCLIST = scan
+CUDASRCLIST =
 
 
 SRCDIR=src
@@ -11,7 +11,8 @@ CC=g++ -m64
 
 CFLAGS=-I $(INCDIR) -O3 -Wall
 LFLAGS=-L/usr/X11R6/lib
-LIBS=-lm -lpthread -lX11 -L/usr/local/depot/cuda-6.5/lib64/ -lcudart
+#LIBS=-lm -lpthread -lX11 -L/usr/local/depot/cuda-6.5/lib64/ -lcudart
+LIBS=-lm -lpthread -lX11 -L/usr/local/depot/cuda-6.5/lib64/
 NVCC=nvcc -arch=sm_20
 NVCCFLAGS=-O3 -m64
 
