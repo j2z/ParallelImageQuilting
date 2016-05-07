@@ -1,11 +1,12 @@
 
 
 #include <cmath>
+#include "color.hpp"
 #include "util.hpp"
 
 // performs bilinear sampling of an image
 
-unsigned char sample(unsigned char* img, int width, float x, float y)
+Color sample(unsigned char* img, int width, float x, float y)
 {
   float left = floor(x);
   float right = ceil(x);
@@ -22,11 +23,10 @@ unsigned char sample(unsigned char* img, int width, float x, float y)
   int b = static_cast<int>(bot);
   int t = static_cast<int>(top);
 
-  // remember that images are stored in y,x
-  float out = tl * static_cast<float>(imgGet(img, width, t, l)) +
-              tr * static_cast<float>(imgGet(img, width, t, r)) +
-              bl * static_cast<float>(imgGet(img, width, b, l)) +
-              br * static_cast<float>(imgGet(img, width, b, r));
+  Color out = tl * imgGetColor(img, width, t, l) +
+              tr * imgGetColor(img, width, t, r) +
+              bl * imgGetColor(img, width, b, l) +
+              br * imgGetColor(img, width, b, r);
 
-  return static_cast<unsigned char>(out);
+  return out;
 }
