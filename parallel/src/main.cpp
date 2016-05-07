@@ -1,24 +1,13 @@
-
-
 #include "CImg.h"
+#include "util.hpp"
 
 #include <iostream>
 #include <ctime>
 
 
-#define TILE_HEIGHT 80
-#define TILE_WIDTH 80
-#define CIRCLE_RADIUS 30
-
-#define WIDTH_TILES 12
-#define HEIGHT_TILES 8
-
-#define NUM_ITERATIONS 20
-
-
 using namespace cimg_library;
 
-void cudaIterate(unsigned char** source, unsigned char** output);
+void cuda_image_quilt(unsigned char* source, unsigned char* output);
 
 //void vertical_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y2, int w, int h, int seam[]);
 //void horizontal_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y2, int w, int h, int seam[]);
@@ -57,24 +46,9 @@ int main(int argc, char* argv[])
 
   CImg<unsigned char> output(output_width, output_height, 1, 3);
 
-  unsigned char** source_pixels = (unsigned char **)malloc(sizeof(char*)*texture_height);
-  source_pixels[0] = (unsigned char *)malloc(sizeof(unsigned char)*texture_height*texture_width*3);
-  for (int i = 1; i < texture_height; i++)
-  {
-    source_pixels[i] = (*source_pixels + texture_width * i *3);
-  }
-  unsigned char** out_pixels = (unsigned char **)malloc(sizeof(char*)*HEIGHT_TILES*TILE_HEIGHT);
-  out_pixels[0] = (unsigned char *)malloc(sizeof(char)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH*3);
-  for (int i = 1; i < HEIGHT_TILES*TILE_HEIGHT; i++)
-  {
-    out_pixels[i] = (*out_pixels + WIDTH_TILES*TILE_WIDTH*i*3);
-  }
-  unsigned char** errors = (unsigned char **)malloc(sizeof(char*)*HEIGHT_TILES*TILE_HEIGHT);
-  errors[0] = (unsigned char *)malloc(sizeof(char)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH*3);
-  for (int i = 1; i < HEIGHT_TILES*TILE_HEIGHT; i++)
-  {
-    errors[i] = (*out_pixels + WIDTH_TILES*TILE_WIDTH*i*3);
-  }
+  unsigned char* source_pixels = (unsigned char *)malloc(sizeof(unsigned char)*texture_height*texture_width*3);
+  unsigned char* out_pixels = (unsigned char *)malloc(sizeof(char)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH*3);
+  unsigned char* errors = (unsigned char *)malloc(sizeof(char)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH*3);
 
   //copy image right now it just copies every pixel until CImg's website comes back up
   for (int i = 0; i < texture_height; i++)
@@ -83,7 +57,7 @@ int main(int argc, char* argv[])
     {
       for (int channel = 0; channel < 3; channel++)
       {
-        source_pixels[i][j*3 + channel] = texture_image(j,i,channel);
+        imgSet(source_pixels, texture_width, i, j, channel, texture_image(j,i,channel));
       }
     }
   }
@@ -97,15 +71,23 @@ int main(int argc, char* argv[])
       const int randY = std::rand() % (texture_height);
       for (int channel = 0; channel < 3; channel++)
       {
-        output(j,i,channel) = texture_image(randX,randY,channel);
-        out_pixels[randY][randX*3 + channel] = output(j,i,channel);
+        imgSet(out_pixels, output_width, i, j, channel, texture_image(randX,randY,channel));
       }
     }
   }
 
-  for (int iter = 0; iter < NUM_ITERATIONS; iter++)
+  cuda_image_quilt(source_pixels, out_pixels);
+  
+  //copy all the pixels to the actual output image
+  for (int i = 0; i < output_height; i++)
   {
-    cudaIterate(source_pixels, out_pixels);
+    for (int j = 0; j < output_width; j++)
+    {
+      for (int channel = 0; channel < 3; channel++)
+      {
+        output(j,i,channel) = imgGet(out_pixels, output_width, i, j, channel);
+      }
+    }
   }
 
   output.save("test.jpg");
