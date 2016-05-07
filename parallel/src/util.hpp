@@ -4,10 +4,20 @@
 
 #include "color.hpp"
 
-
+// 2D array index operations
 inline int getRefIndx(int width, int row, int col)
 {
   return row*width + col;
+}
+
+inline int refIndexRow(int width, int index)
+{
+  return index / width;
+}
+
+inline int refIndexCol(int width, int index)
+{
+  return index % width;
 }
 
 // getters/setters for the map
@@ -21,7 +31,7 @@ inline void imgSetRef(int* img, int width, int row, int col, int val)
   *(img + row*width + col) = val;
 }
 
-// very granular getters/setters
+// very granular getters/setters for the actual image
 inline unsigned char imgGet(unsigned char* img, int width, int row, int col, int channel)
 {
   return *(img + (row*width + col)*3 + channel);
@@ -57,7 +67,9 @@ inline void imgSetColor(unsigned char* img, int width, int row, int col, Color v
 }
 */
 
-Color sample(unsigned char*, int, float, float);
 
+/*
+Color sample(unsigned char*, int, float, float);
+*/
 
 #endif
