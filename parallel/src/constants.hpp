@@ -5,13 +5,13 @@
 
 #include <cmath>
 
-#define TILE_WIDTH 120
+#define TILE_WIDTH 64
 #define TILE_HEIGHT TILE_WIDTH
 
-#define MAX_RADIUS 60
+#define MAX_RADIUS 30
 
-#define POLAR_WIDTH 60
-#define POLAR_HEIGHT 80
+#define POLAR_WIDTH 32
+#define POLAR_HEIGHT 128
 
 //our height for the polar coordinate space is ANGLE_FACTOR * 2 * PI
 #define ANGLE_FACTOR (POLAR_HEIGHT / M_PI / 2.f)
@@ -20,7 +20,7 @@
 
 
 #define HEIGHT_TILES 6
-#define WIDTH_TILES 6
+#define WIDTH_TILES 9
 
 #define OUTPUT_HEIGHT (TILE_HEIGHT * HEIGHT_TILES + 2 * MAX_RADIUS)
 #define OUTPUT_WIDTH (TILE_WIDTH * WIDTH_TILES + 2 * MAX_RADIUS)
