@@ -1,4 +1,5 @@
-SRCLIST = polar_transform patch_copy sample error_map main
+SRCLIST = main
+#SRCLIST = polar_transform patch_copy sample error_map main
 #SRCLIST = polar_transform patch_copy sample error_map copytest
 EXECNAME = ImageQuilt
 CUDASRCLIST = imagequilt_cuda
