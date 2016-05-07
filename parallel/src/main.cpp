@@ -1,13 +1,17 @@
 #include "CImg.h"
 #include "util.hpp"
+#include "constants.hpp"
+#include "CycleTimer.h"
 
 #include <iostream>
 #include <ctime>
+#include <cstdio>
+#include <string.h>
 
 
 using namespace cimg_library;
 
-void cuda_image_quilt(unsigned char* source, unsigned char* output);
+void imagequilt_cuda(int texture_width, int texture_height, unsigned char* source, int* output);
 
 //void vertical_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y2, int w, int h, int seam[]);
 //void horizontal_stitch(CImg<int> im1, CImg<int> im2, int x1, int y1, int x2, int y2, int w, int h, int seam[]);
@@ -37,7 +41,22 @@ int main(int argc, char* argv[])
   std::srand(time(NULL));
   
   CImg<unsigned char> texture_image(argv[1]);
-
+  bool run_cuda = false;
+  bool run_both = true;
+  if (argc > 2)
+  {
+    if(strcmp(argv[2],"c") == 0 || strcmp(argv[2],"C") == 0)
+    {
+      run_both = false;
+      run_cuda = true;
+    }
+    else if (strcmp(argv[3],"s") == 0 || strcmp(argv[2],"S") == 0)
+    {
+      run_both = false;
+      run_cuda = false;
+    }
+  }
+  
   const int texture_height = texture_image.height();
   const int texture_width = texture_image.width();
 
@@ -47,8 +66,7 @@ int main(int argc, char* argv[])
   CImg<unsigned char> output(output_width, output_height, 1, 3);
 
   unsigned char* source_pixels = (unsigned char *)malloc(sizeof(unsigned char)*texture_height*texture_width*3);
-  unsigned char* out_pixels = (unsigned char *)malloc(sizeof(char)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH*3);
-  unsigned char* errors = (unsigned char *)malloc(sizeof(char)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH*3);
+  int* out_pixels = (int *)malloc(sizeof(int)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH);
 
   //copy image right now it just copies every pixel until CImg's website comes back up
   for (int i = 0; i < texture_height; i++)
@@ -62,22 +80,48 @@ int main(int argc, char* argv[])
     }
   }
 
-  //generate white noise image based on random pixels from the original image
-  for (int i = 0; i < output_height; i++)
+  double seqTime = 1;
+  double cudaTime = 1;
+
+  if (run_both || !run_cuda)
   {
-    for (int j = 0; j < output_width; j++)
+    printf("Running Serial\n");
+    double startTime = CycleTimer::currentSeconds();
+    //generate white noise image based on random pixels from the original image
+    for (int i = 0; i < output_height; i++)
     {
-      const int randX = std::rand() % (texture_width);
-      const int randY = std::rand() % (texture_height);
-      for (int channel = 0; channel < 3; channel++)
+      for (int j = 0; j < output_width; j++)
       {
-        imgSet(out_pixels, output_width, i, j, channel, texture_image(randX,randY,channel));
+        const int randX = std::rand() % (texture_width);
+        const int randY = std::rand() % (texture_height);
+        
+        for (int channel = 0; channel < 3; channel++)
+        {
+          imgSetRef(out_pixels, output_width, i, j, getRefIndx(texture_width,randY, randX));
+        }
       }
     }
+
+    double endTime = CycleTimer::currentSeconds();
+    seqTime = endTime - startTime;
+    printf("Sequential Time: %.3f ms\n", 1000.f* seqTime);
+  }
+  if (run_both || run_cuda)
+  {
+    printf("Running in CUDA\n");
+    double startTime = CycleTimer::currentSeconds();
+    imagequilt_cuda(texture_width, texture_height, source_pixels, out_pixels);
+    double endTime = CycleTimer::currentSeconds();
+    cudaTime = endTime - startTime;
+    printf("CUDA Time: %.3f ms\n", 1000.f* cudaTime);
   }
 
-  cuda_image_quilt(source_pixels, out_pixels);
-  
+  if (run_both)
+  {
+    double speedup = seqTime/cudaTime;
+    printf("Speedup: %.3f\n", speedup);
+  }
+
   //copy all the pixels to the actual output image
   for (int i = 0; i < output_height; i++)
   {
@@ -85,14 +129,11 @@ int main(int argc, char* argv[])
     {
       for (int channel = 0; channel < 3; channel++)
       {
-        output(j,i,channel) = imgGet(out_pixels, output_width, i, j, channel);
+        output(j,i,channel) = source_pixels[imgGetRef(out_pixels, output_width, i, j)*3 + channel];
       }
     }
   }
 
   output.save("test.jpg");
-
-  const int patchX = std::rand() % (texture_width - TILE_WIDTH);
-  const int patchY = std::rand() % (texture_height - TILE_HEIGHT);
 
 }
