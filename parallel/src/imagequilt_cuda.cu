@@ -32,8 +32,8 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   //actually, I think it might be possible to store the previous 2 values in shared memory
   unsigned char* back_pointers;
 
-  int output_height = HEIGHT_TILES*TILE_HEIGHT;
-  int output_width = WIDTH_TILES*TILE_WIDTH;
+  int output_height = (HEIGHT_TILES + 1)*TILE_HEIGHT;
+  int output_width = (WIDTH_TILES + 1)*TILE_WIDTH;
   int tile_size = TILE_HEIGHT*TILE_WIDTH;
   int num_tiles = HEIGHT_TILES*WIDTH_TILES;
 
@@ -62,7 +62,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
                                                 output_width,
                                                 texture_width*texture_height);
 
-  dim3 blockDim(32, 1);
+  dim3 blockDim(POLAR_WIDTH, 1);
   dim3 gridDim(num_tiles);
 
   for (int iter = 0; iter < NUM_ITERATIONS; iter++)
@@ -70,6 +70,9 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     //choose random grid alignment
     const int randX = std::rand() % (TILE_WIDTH);
     const int randY = std::rand() % (TILE_HEIGHT);
+
+    //due to the random grid alignment, we only have to run (WIDTH_TILES-1)*(HEIGHT_TILES-1) blocks
+
 
     //copy random pixels over
     //choose random patch from source

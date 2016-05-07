@@ -60,13 +60,13 @@ int main(int argc, char* argv[])
   const int texture_height = texture_image.height();
   const int texture_width = texture_image.width();
 
-  const int output_height = HEIGHT_TILES * TILE_HEIGHT;
-  const int output_width = WIDTH_TILES * TILE_WIDTH;
+  const int output_height = (HEIGHT_TILES + 1) * (TILE_HEIGHT);
+  const int output_width = (WIDTH_TILES + 1) * TILE_WIDTH;
 
   CImg<unsigned char> output(output_width, output_height, 1, 3);
 
   unsigned char* source_pixels = (unsigned char *)malloc(sizeof(unsigned char)*texture_height*texture_width*3);
-  int* out_pixels = (int *)malloc(sizeof(int)*HEIGHT_TILES*TILE_HEIGHT*WIDTH_TILES*TILE_WIDTH);
+  int* out_pixels = (int *)malloc(sizeof(int)*output_height*output_width);
 
   //copy image right now it just copies every pixel until CImg's website comes back up
   for (int i = 0; i < texture_height; i++)
@@ -105,7 +105,21 @@ int main(int argc, char* argv[])
     double endTime = CycleTimer::currentSeconds();
     seqTime = endTime - startTime;
     printf("Sequential Time: %.3f ms\n", 1000.f* seqTime);
+
+    //copy all the pixels to the actual output image
+    for (int i = 0; i < output_height; i++)
+    {
+      for (int j = 0; j < output_width; j++)
+      {
+        for (int channel = 0; channel < 3; channel++)
+        {
+          output(j,i,channel) = source_pixels[imgGetRef(out_pixels, output_width, i, j)*3 + channel];
+        }
+      }
+    }
+    output.save("serial_quilt.jpg");
   }
+
   if (run_both || run_cuda)
   {
     printf("Running in CUDA\n");
@@ -114,26 +128,27 @@ int main(int argc, char* argv[])
     double endTime = CycleTimer::currentSeconds();
     cudaTime = endTime - startTime;
     printf("CUDA Time: %.3f ms\n", 1000.f* cudaTime);
+
+    //copy all the pixels to the actual output image
+    for (int i = 0; i < output_height; i++)
+    {
+      for (int j = 0; j < output_width; j++)
+      {
+        for (int channel = 0; channel < 3; channel++)
+        {
+          output(j,i,channel) = source_pixels[imgGetRef(out_pixels, output_width, i, j)*3 + channel];
+        }
+      }
+    }
+
+    output.save("cuda_quilt.jpg");
   }
 
   if (run_both)
   {
     double speedup = seqTime/cudaTime;
     printf("Speedup: %.3f\n", speedup);
+  
+
   }
-
-  //copy all the pixels to the actual output image
-  for (int i = 0; i < output_height; i++)
-  {
-    for (int j = 0; j < output_width; j++)
-    {
-      for (int channel = 0; channel < 3; channel++)
-      {
-        output(j,i,channel) = source_pixels[imgGetRef(out_pixels, output_width, i, j)*3 + channel];
-      }
-    }
-  }
-
-  output.save("test.jpg");
-
 }
