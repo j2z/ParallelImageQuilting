@@ -1,8 +1,8 @@
 // Care: these functions contain lots of implicit conversions
 // between floats and ints and vice versa
 
+#include "serial_helpers.hpp"
 #include <cmath>
-#include "polar_transform.hpp"
 
 PolarTransformation::PolarTransformation(int r, float rf, float af):
   radius(r),
