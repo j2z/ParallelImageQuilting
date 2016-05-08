@@ -2,6 +2,7 @@
 #include <ctime>
 #include "util.hpp"
 #include "constants.hpp"
+#include "point.hpp"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -21,6 +22,77 @@ __global__ void kernelRandomOutput(curandState* states, int* output, int output_
 {
   int idX = blockIdx.x * BLOCK_SIZE + threadIdx.x;
   output[idX] = curand(&states[idX]) % source_size;
+}
+
+inline __device__ Point offsetToPolar(int x, int y)
+{
+  Point out;
+  out.x = sqrt((float) (x*x + y*y)) * RADIUS_FACTOR;
+  out.y = atan2(y,x);
+  if (out.y < 0.f)
+  {
+    out.y += 2 * M_PI;
+  }
+  out.y *= ANGLE_FACTOR;
+  return out;
+}
+
+inline __device__ Point polarToOffset(int r, int theta)
+{
+  Point out;
+  float rEff = r / RADIUS_FACTOR;
+  float thetaEff = theta / ANGLE_FACTOR;
+  out.x = rEff * cos(thetaEff);
+  out.y = rEff * sin(thetaEff);
+  return out;
+}
+
+inline __device__ Point absoluteToPolar(int cx, int cy, int x, int y)
+{
+  return offsetToPolar(x-cx, y-cy);
+}
+
+inline __device__ Point polarToAbsolute(int cx, int cy, int r, int theta)
+{
+  Point out = polarToOffset(r, theta);
+  out.x += cx;
+  out.y += cy;
+  return out;
+}
+
+
+__global__ void kernelFindBoundaries(int* output, int xOffset, int yOffset, unsigned char* minPaths)
+{
+  //int idX = blockIdx.x * POLAR_WIDTH + threadIdx.x;
+
+  int tileIdx = blockIdx.x;
+  int colIdx = threadIdx.x;
+  
+  __shared__ float currentErrors[POLAR_WIDTH];
+  __shared__ float nextErrors[POLAR_WIDTH];
+  __shared__ float randomStuff[POLAR_WIDTH];
+  __shared__ char back_pointers[POLAR_WIDTH*POLAR_HEIGHT];
+
+  Point p;
+  p.x = colIdx;
+
+  for (int i = 0; i < POLAR_HEIGHT; i++)
+  {
+    //random filler garbage
+    currentErrors[colIdx] = colIdx;
+    nextErrors[colIdx] = currentErrors[colIdx];
+    randomStuff[colIdx] = nextErrors[colIdx];
+    if (randomStuff[colIdx] != 123.123)
+    {
+      back_pointers[i*POLAR_WIDTH + colIdx] = colIdx;
+    }
+    if (back_pointers[i*POLAR_WIDTH + colIdx] == colIdx)
+    {
+      minPaths[tileIdx*POLAR_HEIGHT + i] = p.x;
+    }
+  }
+  
+  
 
 }
 
@@ -31,6 +103,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   int* output_cuda;
   //actually, I think it might be possible to store the previous 2 values in shared memory
   unsigned char* back_pointers;
+  unsigned char* min_paths;
 
   int output_height = (HEIGHT_TILES + 1)*TILE_HEIGHT;
   int output_width = (WIDTH_TILES + 1)*TILE_WIDTH;
@@ -43,10 +116,12 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   //size_t errors_size = sizeof(float)*output_width*output_height;
   //size_t float_polar_size = sizeof(float)*tile_size*num_tiles;
   size_t char_polar_size = sizeof(unsigned char)*tile_size*num_tiles;
+  size_t paths_size = sizeof(unsigned char)*POLAR_HEIGHT*num_tiles;
 
   cudaMalloc((void**)&source_cuda, source_size);
   cudaMalloc((void**)&output_cuda, output_size);
   cudaMalloc((void**)&back_pointers, char_polar_size);
+  cudaMalloc((void**)&min_paths, paths_size);
 
   cudaMemcpy(source_cuda, source, source_size, cudaMemcpyHostToDevice);
 
@@ -65,25 +140,13 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   dim3 blockDim(POLAR_WIDTH, 1);
   dim3 gridDim(num_tiles);
 
-  for (int iter = 0; iter < NUM_ITERATIONS; iter++)
+  for (int iter = 0; iter < ITERATIONS; iter++)
   {
     //choose random grid alignment
-    const int randX = std::rand() % (TILE_WIDTH);
-    const int randY = std::rand() % (TILE_HEIGHT);
+    const int randX = std::rand() % (TILE_WIDTH/2);
+    const int randY = std::rand() % (TILE_HEIGHT/2);
 
-    //due to the random grid alignment, we only have to run (WIDTH_TILES-1)*(HEIGHT_TILES-1) blocks
-
-
-    //copy random pixels over
-    //choose random patch from source
-    //convert energies in polar and perform DP
-    //copy the pixels over
-    //check whether there was an improvement???
-
-    
-    //dim3 blockDim(32, 1);
-    //dim3 gridDim(num_tiles/8);
-
+    kernelFindBoundaries<<<gridDim, blockDim>>>(output_cuda, randX, randY, min_paths);
     
   }
 
