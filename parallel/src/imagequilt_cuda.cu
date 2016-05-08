@@ -16,6 +16,7 @@
 
 #define LOG2_WARP_SIZE 5U
 #define WARP_SIZE (1U << LOG2_WARP_SIZE)
+#define SCAN_BLOCK_DIM POLAR_WIDTH
 
 //Almost the same as naive scan1Inclusive, but doesn't need __syncthreads()
 //assuming size <= WARP_SIZE
