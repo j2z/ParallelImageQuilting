@@ -38,13 +38,13 @@ __global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int s
   __shared__ float currentErrors[POLAR_WIDTH];
   __shared__ float nextErrors[POLAR_WIDTH];
   __shared__ char back_pointers[POLAR_HEIGHT][POLAR_WIDTH];
-  __shared__ int randX;
-  __shared__ int randY;
+  __shared__ int srcX;
+  __shared__ int srcY;
 
   if (colIdx == 0)
   {
-    randX = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
-    randY = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
+    srcX = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
+    srcY = curand(&states[idX]) % (sourceHeight - 2*MAX_RADIUS) + MAX_RADIUS;
   }
   __syncthreads();
 
@@ -52,7 +52,6 @@ __global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int s
   int mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
   int mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
 
-  
 
   for (int i = 0; i < POLAR_HEIGHT; i++)
   {
