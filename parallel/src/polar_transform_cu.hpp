@@ -21,7 +21,7 @@ class PolarTransformationCu
 
 public:
   
-  PolarTransformationCu(int,float,float);
+  __device__ PolarTransformationCu(int,float,float);
   
   __device__ Point offsetToPolar(int, int);
 

@@ -13,7 +13,7 @@ inline __device__ float normFactor(int r)
   return 2 * M_PI * r / POLAR_HEIGHT / RADIUS_FACTOR / RADIUS_FACTOR;
 }
 
-ErrorFunctionCu::ErrorFunctionCu(unsigned char* s, int sW, int cX, int cY, int* m, int mW, int mX, int mY, PolarTransformationCu& t):
+__device__ ErrorFunctionCu::ErrorFunctionCu(unsigned char* s, int sW, int cX, int cY, int* m, int mW, int mX, int mY, PolarTransformationCu& t):
     src(s), srcWidth(sW), srcX(cX), srcY(cY), map(m), mapWidth(mW), mapX(mX), mapY(mY), transform(t)
 {
 }

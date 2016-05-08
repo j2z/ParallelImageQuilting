@@ -3,7 +3,7 @@
 
 #include "cu_helpers.hpp"
 
-PolarTransformationCu::PolarTransformationCu(int r, float rf, float af):
+__device__ PolarTransformationCu::PolarTransformationCu(int r, float rf, float af):
   radius(r),
   radiusFactor(rf),
   angleFactor(af)
@@ -36,8 +36,8 @@ inline __device__ Point PolarTransformationCu::polarToOffset(int r, int theta)
   Point out;
   float rEff = r / radiusFactor;
   float thetaEff = theta / angleFactor;
-  out.x = round(rEff * cos(thetaEff));
-  out.y = round(rEff * sin(thetaEff));
+  out.x = rEff * cos(thetaEff);
+  out.y = rEff * sin(thetaEff);
   return out;
 }
 
