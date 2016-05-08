@@ -9,7 +9,7 @@
 #define ETA 10.f
 #define MAX_JUMP 1
 #define CENTER_ERROR 100000.f
-#define IMPROVE_THRESH 100.f
+#define IMPROVE_THRESH 30.f
 
 inline float normFactor(int r)
 {

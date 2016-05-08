@@ -112,7 +112,6 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   unsigned char* source_cuda;
   int* output_cuda;
   //actually, I think it might be possible to store the previous 2 values in shared memory
-  unsigned char* back_pointers;
   unsigned char* min_paths;
 
   int output_height = (HEIGHT_TILES + 1)*TILE_HEIGHT;
@@ -122,15 +121,10 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
 
   size_t source_size = sizeof(unsigned char)*texture_width*texture_height*3;
   size_t output_size = sizeof(int)*output_width*output_height;
-
-  //size_t errors_size = sizeof(float)*output_width*output_height;
-  //size_t float_polar_size = sizeof(float)*tile_size*num_tiles;
-  size_t char_polar_size = sizeof(unsigned char)*tile_size*num_tiles;
   size_t paths_size = sizeof(unsigned char)*POLAR_HEIGHT*num_tiles;
 
   cudaMalloc((void**)&source_cuda, source_size);
   cudaMalloc((void**)&output_cuda, output_size);
-  cudaMalloc((void**)&back_pointers, char_polar_size);
   cudaMalloc((void**)&min_paths, paths_size);
 
   cudaMemcpy(source_cuda, source, source_size, cudaMemcpyHostToDevice);
@@ -148,15 +142,15 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
                                                 texture_width*texture_height);
 
   dim3 blockDim(POLAR_WIDTH, 1);
-  dim3 gridDim(num_tiles);
+  dim3 gridDim(WIDTH_TILES, HEIGHT_TILES, 1);
 
   for (int iter = 0; iter < ITERATIONS; iter++)
   {
     //choose random grid alignment
-    const int randX = std::rand() % (TILE_WIDTH/2);
-    const int randY = std::rand() % (TILE_HEIGHT/2);
+    const int offsetX = std::rand() % TILE_WIDTH;
+    const int offsetY = std::rand() % TILE_HEIGHT;
 
-    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, randX, randY, min_paths);
+    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths);
     
   }
 
