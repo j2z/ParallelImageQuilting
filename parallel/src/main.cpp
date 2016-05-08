@@ -62,13 +62,10 @@ int main(int argc, char* argv[])
   const int texture_height = texture_image.height();
   const int texture_width = texture_image.width();
 
-  const int output_height = (HEIGHT_TILES + 1) * (TILE_HEIGHT);
-  const int output_width = (WIDTH_TILES + 1) * TILE_WIDTH;
-
-  CImg<unsigned char> output(output_width, output_height, 1, 3);
+  CImg<unsigned char> output(OUTPUT_WIDTH, OUTPUT_HEIGHT, 1, 3);
 
   unsigned char* source_pixels = (unsigned char *)malloc(sizeof(unsigned char)*texture_height*texture_width*3);
-  int* out_pixels = (int *)malloc(sizeof(int)*output_height*output_width);
+  int* out_pixels = (int *)malloc(sizeof(int)*OUTPUT_HEIGHT*OUTPUT_WIDTH);
 
   interleave_colors(source_pixels, texture_height, texture_width, texture_image);
 
@@ -80,27 +77,27 @@ int main(int argc, char* argv[])
     printf("Running Serial\n");
     double startTime = CycleTimer::currentSeconds();
     //generate white noise image based on random pixels from the original image
-    for (int i = 0; i < output_height; i++)
+    for (int i = 0; i < OUTPUT_HEIGHT; i++)
     {
-      for (int j = 0; j < output_width; j++)
+      for (int j = 0; j < OUTPUT_WIDTH; j++)
       {
         const int randX = std::rand() % (texture_width);
         const int randY = std::rand() % (texture_height);
         
         for (int channel = 0; channel < 3; channel++)
         {
-          imgSetRef(out_pixels, output_width, i, j, getRefIndx(texture_width,randY, randX));
+          imgSetRef(out_pixels, OUTPUT_WIDTH, i, j, getRefIndx(texture_width,randY, randX));
         }
       }
     }
 
-    imagequilt_serial(source_pixels, texture_width, texture_height, out_pixels, output_width, output_height);
+    imagequilt_serial(source_pixels, texture_width, texture_height, out_pixels, OUTPUT_WIDTH, OUTPUT_HEIGHT);
 
     double endTime = CycleTimer::currentSeconds();
     seqTime = endTime - startTime;
     printf("Sequential Time: %.3f ms\n", 1000.f* seqTime);
 
-    generate_output(output, output_height, output_width, source_pixels, out_pixels);
+    generate_output(output, OUTPUT_HEIGHT, OUTPUT_WIDTH, source_pixels, out_pixels);
     
     output.save("serial_quilt.jpg");
   }
@@ -114,7 +111,7 @@ int main(int argc, char* argv[])
     cudaTime = endTime - startTime;
     printf("CUDA Time: %.3f ms\n", 1000.f* cudaTime);
 
-    generate_output(output, output_height, output_width, source_pixels, out_pixels);
+    generate_output(output, OUTPUT_HEIGHT, OUTPUT_WIDTH, source_pixels, out_pixels);
 
     output.save("cuda_quilt.jpg");
   }

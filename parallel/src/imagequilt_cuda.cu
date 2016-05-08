@@ -26,7 +26,7 @@ __global__ void kernelRandomOutput(curandState* states, int* output, int output_
   output[idX] = curand(&states[idX]) % source_size;
 }
 
-__global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths, short* samplesX, short* samplesY)
+__global__ void kernelFindBoundaries(curandState* states, unsigned char* source, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths, short* samplesX, short* samplesY)
 {
   int tileIdx = blockIdx.y * WIDTH_TILES + blockIdx.x;
   int idX = tileIdx * POLAR_WIDTH + threadIdx.x;
@@ -35,23 +35,24 @@ __global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int s
   int tileY = blockIdx.y;
   int colIdx = threadIdx.x;
   
-  __shared__ float currentErrors[POLAR_WIDTH];
-  __shared__ float nextErrors[POLAR_WIDTH];
+  __shared__ float array1[POLAR_WIDTH];
+  __shared__ float array2[POLAR_WIDTH];
   __shared__ char back_pointers[POLAR_HEIGHT][POLAR_WIDTH];
-  __shared__ int srcX;
-  __shared__ int srcY;
 
   if (colIdx == 0)
   {
-    srcX = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
-    srcY = curand(&states[idX]) % (sourceHeight - 2*MAX_RADIUS) + MAX_RADIUS;
+    samplesX[tileIdx] = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
+    samplesY[tileIdx] = curand(&states[idX]) % (sourceHeight - 2*MAX_RADIUS) + MAX_RADIUS;
   }
   __syncthreads();
 
+  int srcX = samplesX[tileIdx];
+  int srcY = samplesY[tileIdx];
 
   int mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
   int mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
 
+  ErrorFunctionCu errFunc(source, sourceWidth, srcX, srcY, output, OUTPUT_WIDTH, mapX, mapY, PolarTransformation(MAX_RADIUS, RADIUS_FACTOR, ANGLE_FACTOR));
 
   for (int i = 0; i < POLAR_HEIGHT; i++)
   {
