@@ -26,7 +26,7 @@ __global__ void kernelRandomOutput(curandState* states, int* output, int output_
   output[idX] = curand(&states[idX]) % source_size;
 }
 
-__global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths)
+__global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths, short* samplesX, short* samplesY)
 {
   int tileIdx = blockIdx.y * WIDTH_TILES + blockIdx.x;
   int idX = tileIdx * POLAR_WIDTH + threadIdx.x;
@@ -69,6 +69,8 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   int* output_cuda;
   //actually, I think it might be possible to store the previous 2 values in shared memory
   unsigned char* min_paths;
+  short* samplesX;
+  short* samplesY;
 
   int output_height = (HEIGHT_TILES + 1)*TILE_HEIGHT;
   int output_width = (WIDTH_TILES + 1)*TILE_WIDTH;
@@ -78,10 +80,13 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   size_t source_size = sizeof(unsigned char)*texture_width*texture_height*3;
   size_t output_size = sizeof(int)*output_width*output_height;
   size_t paths_size = sizeof(unsigned char)*POLAR_HEIGHT*num_tiles;
+  size_t samples_size = sizeof(short)*num_tiles;
 
   cudaMalloc((void**)&source_cuda, source_size);
   cudaMalloc((void**)&output_cuda, output_size);
   cudaMalloc((void**)&min_paths, paths_size);
+  cudaMalloc((void**)&samplesX, samples_size);
+  cudaMalloc((void**)&samplesY, samples_size);
 
   cudaMemcpy(source_cuda, source, source_size, cudaMemcpyHostToDevice);
 
@@ -106,7 +111,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
 
-    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths);
+    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
     
   }
 
