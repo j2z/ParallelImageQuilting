@@ -23,10 +23,6 @@ ErrorFunction::ErrorFunction(unsigned char* s, int sW, int cX, int cY, int* m, i
 
 float ErrorFunction::horiz_error(int rho, int theta)
 {
-  if (rho < 3)
-  {
-    return CENTER_ERROR;
-  }
   Point src1 = transform.polarToAbsolute(srcX, srcY, rho, theta);
   Point src2 = transform.polarToAbsolute(srcX, srcY, rho+1, theta);
   Point map1 = transform.polarToAbsolute(mapX, mapY, rho, theta);
