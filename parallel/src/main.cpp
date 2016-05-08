@@ -1,4 +1,6 @@
 #include "CImg.h"
+#include "serial_helpers.hpp"
+#include "image_data.hpp"
 #include "util.hpp"
 #include "constants.hpp"
 #include "CycleTimer.h"
@@ -68,17 +70,7 @@ int main(int argc, char* argv[])
   unsigned char* source_pixels = (unsigned char *)malloc(sizeof(unsigned char)*texture_height*texture_width*3);
   int* out_pixels = (int *)malloc(sizeof(int)*output_height*output_width);
 
-  //copy image right now it just copies every pixel until CImg's website comes back up
-  for (int i = 0; i < texture_height; i++)
-  {
-    for (int j = 0; j < texture_width; j++)
-    {
-      for (int channel = 0; channel < 3; channel++)
-      {
-        imgSet(source_pixels, texture_width, i, j, channel, texture_image(j,i,channel));
-      }
-    }
-  }
+  interleave_colors(source_pixels, texture_height, texture_width, texture_image);
 
   double seqTime = 1;
   double cudaTime = 1;
@@ -102,21 +94,14 @@ int main(int argc, char* argv[])
       }
     }
 
+    //imagequilt_serial(source_pixels, texture_width, texture_height, out_pixels, output_width, output_height);
+
     double endTime = CycleTimer::currentSeconds();
     seqTime = endTime - startTime;
     printf("Sequential Time: %.3f ms\n", 1000.f* seqTime);
 
-    //copy all the pixels to the actual output image
-    for (int i = 0; i < output_height; i++)
-    {
-      for (int j = 0; j < output_width; j++)
-      {
-        for (int channel = 0; channel < 3; channel++)
-        {
-          output(j,i,channel) = source_pixels[imgGetRef(out_pixels, output_width, i, j)*3 + channel];
-        }
-      }
-    }
+    generate_output(output, output_height, output_width, source_pixels, out_pixels);
+    
     output.save("serial_quilt.jpg");
   }
 
@@ -129,17 +114,7 @@ int main(int argc, char* argv[])
     cudaTime = endTime - startTime;
     printf("CUDA Time: %.3f ms\n", 1000.f* cudaTime);
 
-    //copy all the pixels to the actual output image
-    for (int i = 0; i < output_height; i++)
-    {
-      for (int j = 0; j < output_width; j++)
-      {
-        for (int channel = 0; channel < 3; channel++)
-        {
-          output(j,i,channel) = source_pixels[imgGetRef(out_pixels, output_width, i, j)*3 + channel];
-        }
-      }
-    }
+    generate_output(output, output_height, output_width, source_pixels, out_pixels);
 
     output.save("cuda_quilt.jpg");
   }

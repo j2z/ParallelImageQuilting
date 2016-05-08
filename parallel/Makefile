@@ -1,4 +1,4 @@
-SRCLIST = main
+SRCLIST = image_data main
 #SRCLIST = polar_transform patch_copy sample error_map main
 #SRCLIST = polar_transform patch_copy sample error_map copytest
 #SRCLIST = polar_transform patch_copy sample error_map main

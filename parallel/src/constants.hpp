@@ -28,7 +28,7 @@
 // MAX_RADIUS acts as the amount of padding
 
 
-#define ITERATIONS 5
+#define ITERATIONS 1
 
 #endif
 
