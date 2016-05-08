@@ -84,7 +84,7 @@ __global__ void kernelRandomOutput(curandState* states, int* output, int output_
   output[idX] = curand(&states[idX]) % source_size;
 }
 
-__global__ void kernelFindBoundaries(curandState* states, unsigned char* source, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths, short* samplesX, short* samplesY)
+__global__ void kernelFindBoundaries(curandState* states, unsigned char* source, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY)
 {
   int tileIdx = blockIdx.y * WIDTH_TILES + blockIdx.x;
   int idX = tileIdx * POLAR_WIDTH + threadIdx.x;
@@ -122,13 +122,16 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
 
 }
 
+__global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY);
+
+
 void imagequilt_cuda(int texture_width, int texture_height, unsigned char* source, int* output)
 {
   //initialize CUDA global memory
   unsigned char* source_cuda;
   int* output_cuda;
   //actually, I think it might be possible to store the previous 2 values in shared memory
-  unsigned char* min_paths;
+  char* min_paths;
   short* samplesX;
   short* samplesY;
 
@@ -162,17 +165,28 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
                                                 output_width,
                                                 texture_width*texture_height);
 
-  dim3 blockDim(POLAR_WIDTH, 1);
-  dim3 gridDim(WIDTH_TILES, HEIGHT_TILES, 1);
+  // seam carving: each tile gets 1 block of 32 threads
+  dim3 seamCarveBlockDim(POLAR_WIDTH, 1);
+  dim3 seamCarveGridDim(WIDTH_TILES, HEIGHT_TILES, 1);
 
+  // updating the map: each tile gets 4 blocks of 32x32 threads
+  dim3 updateBlockDim(TILE_WIDTH / 2, TILE_HEIGHT / 2);
+  dim3 updateGridDim(WIDTH_TILES, HEIGHT_TILES, 4);
+  
   for (int iter = 0; iter < ITERATIONS; iter++)
   {
     //choose random grid alignment
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
 
-    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
-    
+    kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+   
+
+    // activate this when ready
+    /*
+    kernelUpdateMap<<<updateGridDim, updateBlockDim>>>
+      (texture_width, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+      */
   }
 
   cudaMemcpy(output, output_cuda, output_size, cudaMemcpyDeviceToHost);
