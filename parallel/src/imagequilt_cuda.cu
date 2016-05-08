@@ -61,9 +61,9 @@ inline __device__ Point polarToAbsolute(int cx, int cy, int r, int theta)
 }
 
 
-__global__ void kernelFindBoundaries(int* output, int xOffset, int yOffset, unsigned char* minPaths)
+__global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths)
 {
-  //int idX = blockIdx.x * POLAR_WIDTH + threadIdx.x;
+  int idX = blockIdx.x * POLAR_WIDTH + threadIdx.x;
 
   int tileIdx = blockIdx.x;
   int colIdx = threadIdx.x;
@@ -72,6 +72,16 @@ __global__ void kernelFindBoundaries(int* output, int xOffset, int yOffset, unsi
   __shared__ float nextErrors[POLAR_WIDTH];
   __shared__ float randomStuff[POLAR_WIDTH];
   __shared__ char back_pointers[POLAR_WIDTH*POLAR_HEIGHT];
+  __shared__ int rand;
+
+  if (colIdx == 0)
+  {
+    rand = curand(&states[idX]) % ((sourceWidth-TILE_WIDTH)*(sourceHeight-TILE_HEIGHT));
+  }
+  __syncthreads();
+
+  int randX = rand % (sourceWidth-TILE_WIDTH);
+  int randY = rand / (sourceWidth-TILE_WIDTH);
 
   Point p;
   p.x = colIdx;
@@ -146,7 +156,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     const int randX = std::rand() % (TILE_WIDTH/2);
     const int randY = std::rand() % (TILE_HEIGHT/2);
 
-    kernelFindBoundaries<<<gridDim, blockDim>>>(output_cuda, randX, randY, min_paths);
+    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, randX, randY, min_paths);
     
   }
 
