@@ -1,5 +1,5 @@
 #SRCLIST = image_data main
-SRCLIST = image_data color polar_transform seam_carve update_map imagequilt_serial main
+SRCLIST = image_data color seam_carve update_map imagequilt_serial main
 #SRCLIST = polar_transform patch_copy sample error_map main
 EXECNAME = ImageQuilt
 CUDASRCLIST = imagequilt_cuda color_cu error_cu polar_transform_cu
