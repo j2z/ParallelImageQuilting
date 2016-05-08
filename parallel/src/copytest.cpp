@@ -1,9 +1,10 @@
 
 #include "CImg.h"
 #include "constants.hpp"
-#include "polar_transform.hpp"
+#include "image_data.hpp"
+#include "serial_helpers.hpp"
 #include <ctime>
-
+#include <iostream>
 
 using namespace cimg_library;
 
@@ -37,27 +38,49 @@ int main(int argc, char* argv[])
     seam[i] = seampos;
   }
 
-  CImg<unsigned char> image("duck.jpg");
+  CImg<unsigned char> image("bricks.jpg");
   CImg<unsigned char> output(500,500,1,3);
+  CImg<float> err(POLAR_WIDTH,POLAR_HEIGHT,1,1);
+
+  int imHeight = image.height();
+  int imWidth = image.width();
+
+  unsigned char* source_pixels = (unsigned char*)malloc(sizeof(unsigned char) * imHeight * imWidth * 3);
+
+  interleave_colors(source_pixels, imHeight, imWidth, image);
+
+  int* map = (int*)malloc(sizeof(int) * 500 * 500);
+
+  for (int i = 0; i < 500 * 500; i++)
+  {
+    map[i] = 204*100 + 100;
+  }
 
   PolarTransformation transform(MAX_RADIUS, RADIUS_FACTOR, ANGLE_FACTOR);
 
-  unsigned char* imageRed = image.data();
-  unsigned char* outputRed = output.data();
+  ErrorFunction errFunc(source_pixels, imWidth, 100, 100, map, 500, 250, 250, transform);
+
+  seam_carve(errFunc, seam);
+
+  std::cout << "done carving" << std::endl;
+
+  update_map(source_pixels, imWidth, 100, 100, map, 500, 250, 250, transform, seam);
+
   
-  unsigned char* imageGreen = imageRed + image.width() * image.height();
-  unsigned char* outputGreen = outputRed + 500 * 500;
+  for (int j = 0; j < POLAR_HEIGHT; j++)
+  {
+    for (int i = 0; i < POLAR_WIDTH; i++)
+    {
+      err(i,j) = errFunc.horiz_error(i,j);
+    }
+  }
   
-  unsigned char* imageBlue = imageGreen + image.width() * image.height();
-  unsigned char* outputBlue = outputGreen + 500 * 500;
+  std::cout << "map generated" << std::endl;
 
 
+  generate_output(output, 500, 500, source_pixels, map);
 
-
-  copy_patch(imageRed, outputRed, image.width(), 500, 150, 150, 150, 150, transform, seam);
-  copy_patch(imageGreen, outputGreen, image.width(), 500, 150, 150, 150, 150, transform, seam);
-  copy_patch(imageBlue, outputBlue, image.width(), 500, 150, 150, 150, 150, transform, seam);
-  
+  err.save("err.jpg");
   output.save("try.jpg");
 
   return 0;

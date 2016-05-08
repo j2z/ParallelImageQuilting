@@ -40,10 +40,10 @@ private:
   int mapX;
   int mapY;
 
-  PolarTransformation transform;
+  PolarTransformation& transform;
 
 public:
-  ErrorFunction(unsigned char*, int, int, int, int*, int, int, int, PolarTransformation);
+  ErrorFunction(unsigned char*, int, int, int, int*, int, int, int, PolarTransformation&);
 
   float horiz_error(int rho, int theta);
 
@@ -51,9 +51,9 @@ public:
 };
 
 
-void seam_carve(ErrorFunction, int[POLAR_HEIGHT]);
+bool seam_carve(ErrorFunction&, int[POLAR_HEIGHT]);
 
-void update_map(unsigned char*, int, int, int, int*, int, int, int, PolarTransformation, int[POLAR_HEIGHT]);
+void update_map(unsigned char*, int, int, int, int*, int, int, int, PolarTransformation&, int[POLAR_HEIGHT]);
 
 // This function basically does everything
 // (except initializing random colors at the beginning)

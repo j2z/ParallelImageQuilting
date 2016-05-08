@@ -11,8 +11,8 @@ void imagequilt_serial(unsigned char* src, int srcWidth, int srcHeight, int* map
 
   for (int iter = 0; iter < ITERATIONS; iter++)
   {
-    int xOffset = rand() % (2 * MAX_RADIUS);
-    int yOffset = rand() % (2 * MAX_RADIUS);
+    int xOffset = rand() % TILE_WIDTH;
+    int yOffset = rand() % TILE_WIDTH;
 
     for (int tileY = 0; tileY < HEIGHT_TILES; tileY++)
     {
@@ -28,10 +28,12 @@ void imagequilt_serial(unsigned char* src, int srcWidth, int srcHeight, int* map
 
         int seam[POLAR_HEIGHT];
       
-        seam_carve(errFunc, seam);
+        bool improvement = seam_carve(errFunc, seam);
         
-        update_map(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY, transform, seam);
-
+        if (improvement)
+        {
+          update_map(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY, transform, seam);
+        }
       }
     }
   }

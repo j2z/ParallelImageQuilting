@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
       }
     }
 
-    //imagequilt_serial(source_pixels, texture_width, texture_height, out_pixels, output_width, output_height);
+    imagequilt_serial(source_pixels, texture_width, texture_height, out_pixels, output_width, output_height);
 
     double endTime = CycleTimer::currentSeconds();
     seqTime = endTime - startTime;

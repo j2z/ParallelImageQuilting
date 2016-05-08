@@ -7,7 +7,7 @@
 // defined in the seam
 void update_map(unsigned char* src, int srcWidth, int srcX, int srcY,
                 int* map, int mapWidth, int mapX, int mapY,
-                PolarTransformation transform, int seam[POLAR_HEIGHT])
+                PolarTransformation& transform, int seam[POLAR_HEIGHT])
 {
   int r = transform.getRadius();
   int maxDist = r*r;
@@ -35,7 +35,7 @@ void update_map(unsigned char* src, int srcWidth, int srcX, int srcY,
       {
         int imgX = srcX + i;
         int imgY = srcY + j;
-        imgSetRef(map, mapWidth, mapX + i, mapY + j, imgY * srcWidth + imgX);
+        imgSetRef(map, mapWidth, mapY + j, mapX + i, imgY * srcWidth + imgX);
       }
 
     }

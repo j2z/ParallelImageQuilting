@@ -4,21 +4,29 @@
 #include "util.hpp"
 #include <cmath>
 
-#define ETA 2.f
+#include <iostream>
+
+#define ETA 10.f
 #define MAX_JUMP 1
+#define CENTER_ERROR 100000.f
+#define IMPROVE_THRESH 100.f
 
 inline float normFactor(int r)
 {
   return 2 * M_PI * r / POLAR_HEIGHT / RADIUS_FACTOR / RADIUS_FACTOR;
 }
 
-ErrorFunction::ErrorFunction(unsigned char* s, int sW, int cX, int cY, int* m, int mW, int mX, int mY, PolarTransformation t):
+ErrorFunction::ErrorFunction(unsigned char* s, int sW, int cX, int cY, int* m, int mW, int mX, int mY, PolarTransformation& t):
     src(s), srcWidth(sW), srcX(cX), srcY(cY), map(m), mapWidth(mW), mapX(mX), mapY(mY), transform(t)
 {
 }
 
 float ErrorFunction::horiz_error(int rho, int theta)
 {
+  if (rho < 3)
+  {
+    return CENTER_ERROR;
+  }
   Point src1 = transform.polarToAbsolute(srcX, srcY, rho, theta);
   Point src2 = transform.polarToAbsolute(srcX, srcY, rho+1, theta);
   Point map1 = transform.polarToAbsolute(mapX, mapY, rho, theta);
@@ -47,11 +55,13 @@ float ErrorFunction::existing_error(int rho, int theta)
   Point map1 = transform.polarToAbsolute(mapX, mapY, rho, theta);
   Point map2 = transform.polarToAbsolute(mapX, mapY, rho+1, theta);
 
+
   int map1Y = (int)round(map1.y);
   int map1X = (int)round(map1.x);
 
   int map2Y = (int)round(map2.y);
   int map2X = (int)round(map2.x);
+
 
   int xShift = map2X - map1X;
   int yShift = map2Y - map1Y;
@@ -60,15 +70,15 @@ float ErrorFunction::existing_error(int rho, int theta)
   int dst1Offset = imgGetRef(map, mapWidth, map1Y, map1X);
   int dst2Offset = imgGetRef(map, mapWidth, map2Y, map2X);
 
-  int src1X = refIndexCol(dst1Offset, srcWidth);
-  int src1Y = refIndexRow(dst1Offset, srcWidth);
+  int src1X = refIndexCol(srcWidth, dst1Offset);
+  int src1Y = refIndexRow(srcWidth, dst1Offset);
+
 
   Color dstColor1 = imgGetColor(src, dst1Offset);
   Color dstColor2 = imgGetColor(src, dst2Offset);
 
-
   Color srcColor1 = dstColor1;
-  Color srcColor2 = imgGetColor(src, srcWidth, src1X + xShift, src1Y + yShift);
+  Color srcColor2 = imgGetColor(src, srcWidth, src1Y + yShift, src1X + xShift);
 
   // note that the square diff between srcColor1 and dstColor1 is 0 so we omit it
   float error1 = Color::sqDiff(srcColor2, dstColor2)
@@ -82,7 +92,7 @@ float ErrorFunction::existing_error(int rho, int theta)
 // pass in an array for the polar coordinate error map
 // with constants defined in constants.hpp
 
-void seam_carve(ErrorFunction errFunc, int seam[POLAR_HEIGHT])
+bool seam_carve(ErrorFunction& errFunc, int seam[POLAR_HEIGHT])
 {
   // create 2 buffers for currentRow and previousRow
   float array1[POLAR_WIDTH];
@@ -147,6 +157,7 @@ void seam_carve(ErrorFunction errFunc, int seam[POLAR_HEIGHT])
 
   // pick the best seam which also wraps around
   int minSeam = -1;
+  float minVal = 0.0;
   for (int i = 0; i < POLAR_WIDTH; i++)
   {
     int index = backPointers[POLAR_HEIGHT-1][i];
@@ -157,11 +168,18 @@ void seam_carve(ErrorFunction errFunc, int seam[POLAR_HEIGHT])
     // if we have wraparound
     if (index == i)
     {
-      if (minSeam == -1 || previousRow[i] < previousRow[minSeam])
+      if (minSeam == -1 || previousRow[i] < minVal)
       {
         minSeam = i;
+        minVal = previousRow[i];
       }
     }
+  }
+
+  // if the seams we cover up don't outweigh the cost of the new seam
+  if (minVal > IMPROVE_THRESH)
+  {
+    return false;
   }
 
   // copy min seam to seam[]
@@ -171,6 +189,7 @@ void seam_carve(ErrorFunction errFunc, int seam[POLAR_HEIGHT])
     seam[step] = index;
     index = backPointers[step][index];
   }
+  return true;
 }
 
 
