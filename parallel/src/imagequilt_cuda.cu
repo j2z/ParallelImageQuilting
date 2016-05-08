@@ -3,6 +3,8 @@
 #include "util.hpp"
 #include "constants.hpp"
 #include "point.hpp"
+#include "color_cu.hpp"
+#include "util_cu.hpp"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -23,43 +25,6 @@ __global__ void kernelRandomOutput(curandState* states, int* output, int output_
   int idX = blockIdx.x * BLOCK_SIZE + threadIdx.x;
   output[idX] = curand(&states[idX]) % source_size;
 }
-
-inline __device__ Point offsetToPolar(int x, int y)
-{
-  Point out;
-  out.x = sqrt((float) (x*x + y*y)) * RADIUS_FACTOR;
-  out.y = atan2(y,x);
-  if (out.y < 0.f)
-  {
-    out.y += 2 * M_PI;
-  }
-  out.y *= ANGLE_FACTOR;
-  return out;
-}
-
-inline __device__ Point polarToOffset(int r, int theta)
-{
-  Point out;
-  float rEff = r / RADIUS_FACTOR;
-  float thetaEff = theta / ANGLE_FACTOR;
-  out.x = rEff * cos(thetaEff);
-  out.y = rEff * sin(thetaEff);
-  return out;
-}
-
-inline __device__ Point absoluteToPolar(int cx, int cy, int x, int y)
-{
-  return offsetToPolar(x-cx, y-cy);
-}
-
-inline __device__ Point polarToAbsolute(int cx, int cy, int r, int theta)
-{
-  Point out = polarToOffset(r, theta);
-  out.x += cx;
-  out.y += cy;
-  return out;
-}
-
 
 __global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths)
 {
