@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
       run_both = false;
       run_cuda = true;
     }
-    else if (strcmp(argv[3],"s") == 0 || strcmp(argv[2],"S") == 0)
+    else if (strcmp(argv[2],"s") == 0 || strcmp(argv[2],"S") == 0)
     {
       run_both = false;
       run_cuda = false;

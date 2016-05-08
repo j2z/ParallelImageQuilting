@@ -52,7 +52,7 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
   int mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
   int mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
 
-  ErrorFunctionCu errFunc(source, sourceWidth, srcX, srcY, output, OUTPUT_WIDTH, mapX, mapY, PolarTransformation(MAX_RADIUS, RADIUS_FACTOR, ANGLE_FACTOR));
+  //ErrorFunctionCu errFunc(source, sourceWidth, srcX, srcY, output, OUTPUT_WIDTH, mapX, mapY, PolarTransformation(MAX_RADIUS, RADIUS_FACTOR, ANGLE_FACTOR));
 
   for (int i = 0; i < POLAR_HEIGHT; i++)
   {
@@ -111,7 +111,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
 
-    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+    //kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
     
   }
 
