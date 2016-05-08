@@ -100,17 +100,8 @@ int main(int argc, char* argv[])
     seqTime = endTime - startTime;
     printf("Sequential Time: %.3f ms\n", 1000.f* seqTime);
 
-    //copy all the pixels to the actual output image
-    for (int i = 0; i < output_height; i++)
-    {
-      for (int j = 0; j < output_width; j++)
-      {
-        for (int channel = 0; channel < 3; channel++)
-        {
-          output(j,i,channel) = source_pixels[imgGetRef(out_pixels, output_width, i, j)*3 + channel];
-        }
-      }
-    }
+    generate_output(output, output_height, output_width, source_pixels, out_pixels);
+    
     output.save("serial_quilt.jpg");
   }
 
