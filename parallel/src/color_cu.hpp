@@ -15,17 +15,17 @@ public:
   float green;
   float blue;
 
-  ColorCu(unsigned char, unsigned char, unsigned char);
-  ColorCu(float, float, float);
-  ColorCu(const ColorCu&);
+  __device__ ColorCu(unsigned char, unsigned char, unsigned char);
+  __device__ ColorCu(float, float, float);
+  __device__ ColorCu(const ColorCu&);
 
   // basically dot product squared
-  static float sqDiff(ColorCu, ColorCu);
+  __device__ static float sqDiff(ColorCu, ColorCu);
 
   // basically vector addition
-  friend ColorCu operator+(const ColorCu&, const ColorCu&);
+  __device__ friend ColorCu operator+(const ColorCu&, const ColorCu&);
   // basically vector scalar multiplication
-  friend ColorCu operator*(float, const ColorCu&);
+  __device__ friend ColorCu operator*(float, const ColorCu&);
 
 };
 

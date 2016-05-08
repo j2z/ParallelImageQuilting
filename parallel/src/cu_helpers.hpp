@@ -25,11 +25,11 @@ private:
   PolarTransformationCu& transform;
 
 public:
-  ErrorFunctionCu(unsigned char*, int, int, int, int*, int, int, int, PolarTransformationCu&);
+  __device__ ErrorFunctionCu(unsigned char*, int, int, int, int*, int, int, int, PolarTransformationCu&);
 
-  float horiz_error(int rho, int theta);
+  __device__ float horiz_error(int rho, int theta);
 
-  float existing_error(int rho, int theta);
+  __device__ float existing_error(int rho, int theta);
 };
 
 #endif
