@@ -1,6 +1,6 @@
 
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef UTIL_CU_H
+#define UTIL_CU_H
 
 #include "color_cu.hpp"
 
@@ -56,20 +56,5 @@ inline __device__ ColorCu imgGetColor(unsigned char* img, int offset)
   return ColorCu(*addr, *(addr + 1), *(addr + 2));
 }
 
-
-/*
-inline void imgSetColor(unsigned char* img, int width, int row, int col, Color val)
-{
-  unsigned char* addr = img + (row*width + col) * 3;
-  *addr = val.red;
-  *(addr + 1) = val.green;
-  *(addr + 2) = val.blue;
-}
-*/
-
-
-/*
-Color sample(unsigned char*, int, float, float);
-*/
 
 #endif

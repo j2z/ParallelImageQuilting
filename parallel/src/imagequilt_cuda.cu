@@ -1,10 +1,6 @@
 #include <cstdio>
 #include <ctime>
-#include "util.hpp"
-#include "constants.hpp"
-#include "point.hpp"
-#include "color_cu.hpp"
-#include "util_cu.hpp"
+#include "cu_helpers.hpp"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -120,7 +116,9 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
   {
   }
   
-  
+  ColorCu color(3.f,4.f,5.f);
+  array1[threadIdx.x] = color.red;
+  array2[threadIdx.x] = colorSqDiff(color, color);
 
 }
 
@@ -173,7 +171,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
 
-    //kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+    kernelFindBoundaries<<<gridDim, blockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
     
   }
 

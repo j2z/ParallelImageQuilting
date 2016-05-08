@@ -5,7 +5,11 @@
 #define CU_HELPERS_H
 
 #include "point.hpp"
+#include "util_cu.hpp"
+#include "mapping.hpp"
 #include "constants.hpp"
+
+#define ETA 10.f
 
 // Transforms offsets to whereever the center is defined into polar
 inline __device__ Point offsetToPolar(int x, int y)
@@ -50,29 +54,72 @@ inline __device__ Point polarToAbsolute(int cx, int cy, int rho, int theta)
   return out;
 }
 
-
-
-class ErrorFunctionCu
+static inline __device__ float normFactor(int r)
 {
-private:
-  unsigned char* src;
-  int srcWidth;
-  int srcX;
-  int srcY;
+  return 2 * M_PI * r / POLAR_HEIGHT / RADIUS_FACTOR / RADIUS_FACTOR;
+}
 
-  int* map;
-  int mapWidth;
-  int mapX;
-  int mapY;
+inline __device__ float horiz_error(MappingData& mapping, int rho, int theta)
+{
+  Point src1 = polarToAbsolute(mapping.srcX, mapping.srcY, rho, theta);
+  Point src2 = polarToAbsolute(mapping.srcX, mapping.srcY, rho+1, theta);
+  Point map1 = polarToAbsolute(mapping.mapX, mapping.mapY, rho, theta);
+  Point map2 = polarToAbsolute(mapping.mapX, mapping.mapY, rho+1, theta);
 
-  PolarTransformationCu& transform;
+  ColorCu srcColor1 = imgGetColor(mapping.src, mapping.srcWidth, (int)round(src1.y), (int)round(src1.x));
+  ColorCu srcColor2 = imgGetColor(mapping.src, mapping.srcWidth, (int)round(src2.y), (int)round(src2.x));
 
-public:
-  __device__ ErrorFunctionCu(unsigned char*, int, int, int, int*, int, int, int, PolarTransformationCu&);
 
-  __device__ float horiz_error(int rho, int theta);
+  int dst1Offset = imgGetRef(mapping.map, mapping.mapWidth, (int)round(map1.y), (int)round(map1.x));
+  int dst2Offset = imgGetRef(mapping.map, mapping.mapWidth, (int)round(map2.y), (int)round(map2.x));
+  ColorCu dstColor1 = imgGetColor(mapping.src, dst1Offset);
+  ColorCu dstColor2 = imgGetColor(mapping.src, dst2Offset);
 
-  __device__ float existing_error(int rho, int theta);
-};
+  float error1 = (colorSqDiff(srcColor1, dstColor1) +
+                    colorSqDiff(srcColor2, dstColor2))
+                  / (colorSqDiff(srcColor1, srcColor2) +
+                    colorSqDiff(dstColor1, dstColor2) + ETA);
+  
+  return normFactor(rho) * error1 * error1;
+
+}
+
+inline __device__ float existing_error(MappingData& mapping, int rho, int theta)
+{
+  Point map1 = polarToAbsolute(mapping.mapX, mapping.mapY, rho, theta);
+  Point map2 = polarToAbsolute(mapping.mapX, mapping.mapY, rho+1, theta);
+
+  int map1Y = (int)round(map1.y);
+  int map1X = (int)round(map1.x);
+
+  int map2Y = (int)round(map2.y);
+  int map2X = (int)round(map2.x);
+
+
+  int xShift = map2X - map1X;
+  int yShift = map2Y - map1Y;
+
+
+  int dst1Offset = imgGetRef(mapping.map, mapping.mapWidth, map1Y, map1X);
+  int dst2Offset = imgGetRef(mapping.map, mapping.mapWidth, map2Y, map2X);
+
+  int src1X = refIndexCol(mapping.srcWidth, dst1Offset);
+  int src1Y = refIndexRow(mapping.srcWidth, dst1Offset);
+
+
+  ColorCu dstColor1 = imgGetColor(mapping.src, dst1Offset);
+  ColorCu dstColor2 = imgGetColor(mapping.src, dst2Offset);
+
+  ColorCu srcColor1 = dstColor1;
+  ColorCu srcColor2 = imgGetColor(mapping.src, mapping.srcWidth, src1Y + yShift, src1X + xShift);
+
+  // note that the square diff between srcColor1 and dstColor1 is 0 so we omit it
+  float error1 = colorSqDiff(srcColor2, dstColor2)
+                  / (colorSqDiff(srcColor1, srcColor2) +
+                    colorSqDiff(dstColor1, dstColor2) + ETA);
+  
+  return normFactor(rho) * error1 * error1;
+}
+
 
 #endif

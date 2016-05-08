@@ -5,8 +5,8 @@
  *  but if you're converting back to unsigned chars, they better be valid
  */
 
-#ifndef COLOR_H
-#define COLOR_H
+#ifndef COLOR_CU_H
+#define COLOR_CU_H
 
 class ColorCu
 {
