@@ -37,10 +37,10 @@ float ErrorFunction::horiz_error(int rho, int theta)
   Color dstColor1 = imgGetColor(src, dst1Offset);
   Color dstColor2 = imgGetColor(src, dst2Offset);
 
-  float error1 = (Color::sqDiff(srcColor1, dstColor1) +
-                    Color::sqDiff(srcColor2, dstColor2))
-                  / (Color::sqDiff(srcColor1, srcColor2) +
-                    Color::sqDiff(dstColor1, dstColor2) + ETA);
+  float error1 = (colorSqDiff(srcColor1, dstColor1) +
+                    colorSqDiff(srcColor2, dstColor2))
+                  / (colorSqDiff(srcColor1, srcColor2) +
+                    colorSqDiff(dstColor1, dstColor2) + ETA);
   
   return normFactor(rho) * error1 * error1;
 
@@ -77,9 +77,9 @@ float ErrorFunction::existing_error(int rho, int theta)
   Color srcColor2 = imgGetColor(src, srcWidth, src1Y + yShift, src1X + xShift);
 
   // note that the square diff between srcColor1 and dstColor1 is 0 so we omit it
-  float error1 = Color::sqDiff(srcColor2, dstColor2)
-                  / (Color::sqDiff(srcColor1, srcColor2) +
-                    Color::sqDiff(dstColor1, dstColor2) + ETA);
+  float error1 = colorSqDiff(srcColor2, dstColor2)
+                  / (colorSqDiff(srcColor1, srcColor2) +
+                    colorSqDiff(dstColor1, dstColor2) + ETA);
   
   return normFactor(rho) * error1 * error1;
 

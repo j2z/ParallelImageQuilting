@@ -14,19 +14,49 @@ public:
   float red;
   float green;
   float blue;
+  
+  // construct from unsigned chars
+  Color(unsigned char r, unsigned char g, unsigned char b)
+  {
+    red = static_cast<float>(r);
+    green = static_cast<float>(g);
+    blue = static_cast<float>(b);
+  }
 
-  Color(unsigned char, unsigned char, unsigned char);
-  Color(float, float, float);
-  Color(const Color&);
+  Color(float r, float g, float b):
+    red(r), green(g), blue(b)
+  {
+  }
 
-  // basically dot product squared
-  static float sqDiff(Color, Color);
+  // copy (assignment) constructor
+  Color(const Color& obj)
+  {
+    red = obj.red;
+    green = obj.green;
+    blue = obj.blue;
+  }
 
   // basically vector addition
-  friend Color operator+(const Color&, const Color&);
-  // basically vector scalar multiplication
-  friend Color operator*(float, const Color&);
+  friend Color operator+(const Color& c1, const Color& c2)
+  {
+    return Color(c1.red + c2.red, c1.green + c2.green, c1.blue + c2.blue);
+  }
 
+  // basically vector scalar multiplication
+  friend Color operator*(float scale, const Color& c)
+  {
+    return Color(scale * c.red, scale * c.green, scale * c.blue);
+  }
 };
+
+// basically dot product squared
+inline float colorSqDiff(Color c1, Color c2)
+{
+  float redDiff = c1.red - c2.red;
+  float greenDiff = c1.green - c2.green;
+  float blueDiff = c1.blue - c2.blue;
+  return redDiff * redDiff + greenDiff * greenDiff + blueDiff * blueDiff;
+}
+
 
 #endif
