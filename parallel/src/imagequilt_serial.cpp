@@ -15,21 +15,24 @@ void imagequilt_serial(unsigned char* src, int srcWidth, int srcHeight, int* map
     {
       for (int tileX = 0; tileX < WIDTH_TILES; tileX++)
       {
-        int mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
-        int mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
-
-        int srcY = rand() % (srcHeight - 2*MAX_RADIUS) + MAX_RADIUS;
-        int srcX = rand() % (srcWidth - 2*MAX_RADIUS) + MAX_RADIUS;
-
-        ErrorFunction errFunc(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY);
+        MappingData mapping;
+        mapping.src = src;
+        mapping.srcWidth = srcWidth;
+        mapping.srcX = rand() % (srcWidth - 2*MAX_RADIUS) + MAX_RADIUS;
+        mapping.srcY = rand() % (srcHeight - 2*MAX_RADIUS) + MAX_RADIUS;
+       
+        mapping.map = map;
+        mapping.mapWidth = mapWidth;
+        mapping.mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
+        mapping.mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
 
         int seam[POLAR_HEIGHT];
       
-        bool improvement = seam_carve(errFunc, seam);
+        bool improvement = seam_carve(mapping, seam);
         
         if (improvement)
         {
-          update_map(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY, seam);
+          update_map(mapping, seam);
         }
       }
     }

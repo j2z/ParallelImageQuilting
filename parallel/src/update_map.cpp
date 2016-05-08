@@ -5,9 +5,7 @@
 
 // updates the map to use the coordinates from src based on the polar cutout
 // defined in the seam
-void update_map(unsigned char* src, int srcWidth, int srcX, int srcY,
-                int* map, int mapWidth, int mapX, int mapY,
-                int seam[POLAR_HEIGHT])
+void update_map(MappingData& mapping, int seam[POLAR_HEIGHT])
 {
   int maxDist = MAX_RADIUS * MAX_RADIUS;
   for (int j = -MAX_RADIUS; j <= MAX_RADIUS; j++)
@@ -32,9 +30,11 @@ void update_map(unsigned char* src, int srcWidth, int srcX, int srcY,
 
       if (rad <= seam[theta])
       {
-        int imgX = srcX + i;
-        int imgY = srcY + j;
-        imgSetRef(map, mapWidth, mapY + j, mapX + i, imgY * srcWidth + imgX);
+        int imgX = mapping.srcX + i;
+        int imgY = mapping.srcY + j;
+        imgSetRef(mapping.map, mapping.mapWidth,
+                  mapping.mapY + j, mapping.mapX + i,
+                  imgY * mapping.srcWidth + imgX);
       }
 
     }
