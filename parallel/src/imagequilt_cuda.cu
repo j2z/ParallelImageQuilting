@@ -63,43 +63,34 @@ inline __device__ Point polarToAbsolute(int cx, int cy, int r, int theta)
 
 __global__ void kernelFindBoundaries(curandState* states, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, unsigned char* minPaths)
 {
-  int idX = blockIdx.x * POLAR_WIDTH + threadIdx.x;
+  int tileIdx = blockIdx.y * WIDTH_TILES + blockIdx.x;
+  int idX = tileIdx * POLAR_WIDTH + threadIdx.x;
 
-  int tileIdx = blockIdx.x;
+  int tileX = blockIdx.x;
+  int tileY = blockIdx.y;
   int colIdx = threadIdx.x;
   
   __shared__ float currentErrors[POLAR_WIDTH];
   __shared__ float nextErrors[POLAR_WIDTH];
-  __shared__ float randomStuff[POLAR_WIDTH];
-  __shared__ char back_pointers[POLAR_WIDTH*POLAR_HEIGHT];
-  __shared__ int rand;
+  __shared__ char back_pointers[POLAR_HEIGHT][POLAR_WIDTH];
+  __shared__ int randX;
+  __shared__ int randY;
 
   if (colIdx == 0)
   {
-    rand = curand(&states[idX]) % ((sourceWidth-TILE_WIDTH)*(sourceHeight-TILE_HEIGHT));
+    randX = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
+    randY = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
   }
   __syncthreads();
 
-  int randX = rand % (sourceWidth-TILE_WIDTH);
-  int randY = rand / (sourceWidth-TILE_WIDTH);
 
-  Point p;
-  p.x = colIdx;
+  int mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
+  int mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
+
+  
 
   for (int i = 0; i < POLAR_HEIGHT; i++)
   {
-    //random filler garbage
-    currentErrors[colIdx] = colIdx;
-    nextErrors[colIdx] = currentErrors[colIdx];
-    randomStuff[colIdx] = nextErrors[colIdx];
-    if (randomStuff[colIdx] != 123.123)
-    {
-      back_pointers[i*POLAR_WIDTH + colIdx] = colIdx;
-    }
-    if (back_pointers[i*POLAR_WIDTH + colIdx] == colIdx)
-    {
-      minPaths[tileIdx*POLAR_HEIGHT + i] = p.x;
-    }
   }
   
   
