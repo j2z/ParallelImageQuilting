@@ -6,9 +6,6 @@
 // assumes rand has been initialized
 void imagequilt_serial(unsigned char* src, int srcWidth, int srcHeight, int* map, int mapWidth, int mapHeight)
 {
-  // right now, same radius for every iter
-  PolarTransformation transform(MAX_RADIUS, RADIUS_FACTOR, ANGLE_FACTOR);
-
   for (int iter = 0; iter < ITERATIONS; iter++)
   {
     int xOffset = rand() % TILE_WIDTH;
@@ -24,7 +21,7 @@ void imagequilt_serial(unsigned char* src, int srcWidth, int srcHeight, int* map
         int srcY = rand() % (srcHeight - 2*MAX_RADIUS) + MAX_RADIUS;
         int srcX = rand() % (srcWidth - 2*MAX_RADIUS) + MAX_RADIUS;
 
-        ErrorFunction errFunc(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY, transform);
+        ErrorFunction errFunc(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY);
 
         int seam[POLAR_HEIGHT];
       
@@ -32,7 +29,7 @@ void imagequilt_serial(unsigned char* src, int srcWidth, int srcHeight, int* map
         
         if (improvement)
         {
-          update_map(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY, transform, seam);
+          update_map(src, srcWidth, srcX, srcY, map, mapWidth, mapX, mapY, seam);
         }
       }
     }

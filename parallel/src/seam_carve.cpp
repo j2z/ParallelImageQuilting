@@ -16,17 +16,17 @@ inline float normFactor(int r)
   return 2 * M_PI * r / POLAR_HEIGHT / RADIUS_FACTOR / RADIUS_FACTOR;
 }
 
-ErrorFunction::ErrorFunction(unsigned char* s, int sW, int cX, int cY, int* m, int mW, int mX, int mY, PolarTransformation& t):
-    src(s), srcWidth(sW), srcX(cX), srcY(cY), map(m), mapWidth(mW), mapX(mX), mapY(mY), transform(t)
+ErrorFunction::ErrorFunction(unsigned char* s, int sW, int cX, int cY, int* m, int mW, int mX, int mY):
+    src(s), srcWidth(sW), srcX(cX), srcY(cY), map(m), mapWidth(mW), mapX(mX), mapY(mY)
 {
 }
 
 float ErrorFunction::horiz_error(int rho, int theta)
 {
-  Point src1 = transform.polarToAbsolute(srcX, srcY, rho, theta);
-  Point src2 = transform.polarToAbsolute(srcX, srcY, rho+1, theta);
-  Point map1 = transform.polarToAbsolute(mapX, mapY, rho, theta);
-  Point map2 = transform.polarToAbsolute(mapX, mapY, rho+1, theta);
+  Point src1 = polarToAbsolute(srcX, srcY, rho, theta);
+  Point src2 = polarToAbsolute(srcX, srcY, rho+1, theta);
+  Point map1 = polarToAbsolute(mapX, mapY, rho, theta);
+  Point map2 = polarToAbsolute(mapX, mapY, rho+1, theta);
 
   Color srcColor1 = imgGetColor(src, srcWidth, (int)round(src1.y), (int)round(src1.x));
   Color srcColor2 = imgGetColor(src, srcWidth, (int)round(src2.y), (int)round(src2.x));
@@ -48,8 +48,8 @@ float ErrorFunction::horiz_error(int rho, int theta)
 
 float ErrorFunction::existing_error(int rho, int theta)
 {
-  Point map1 = transform.polarToAbsolute(mapX, mapY, rho, theta);
-  Point map2 = transform.polarToAbsolute(mapX, mapY, rho+1, theta);
+  Point map1 = polarToAbsolute(mapX, mapY, rho, theta);
+  Point map2 = polarToAbsolute(mapX, mapY, rho+1, theta);
 
 
   int map1Y = (int)round(map1.y);

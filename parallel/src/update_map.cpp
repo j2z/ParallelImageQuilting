@@ -7,20 +7,19 @@
 // defined in the seam
 void update_map(unsigned char* src, int srcWidth, int srcX, int srcY,
                 int* map, int mapWidth, int mapX, int mapY,
-                PolarTransformation& transform, int seam[POLAR_HEIGHT])
+                int seam[POLAR_HEIGHT])
 {
-  int r = transform.getRadius();
-  int maxDist = r*r;
-  for (int j = -r; j <= r; j++)
+  int maxDist = MAX_RADIUS * MAX_RADIUS;
+  for (int j = -MAX_RADIUS; j <= MAX_RADIUS; j++)
   {
-    for (int i = -r; i <= r; i++)
+    for (int i = -MAX_RADIUS; i <= MAX_RADIUS; i++)
     {
       if (i*i + j*j > maxDist)
       {
         continue;
       }
 
-      Point polar = transform.offsetToPolar(i, j);
+      Point polar = offsetToPolar(i, j);
 
       // right now just use rounding, can check if more advanced methods give
       // better results
