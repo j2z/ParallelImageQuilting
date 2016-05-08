@@ -105,6 +105,19 @@ int main(int argc, char* argv[])
   if (run_both || run_cuda)
   {
     printf("Running in CUDA\n");
+    for (int i = 0; i < OUTPUT_HEIGHT; i++)
+    {
+      for (int j = 0; j < OUTPUT_WIDTH; j++)
+      {
+        const int randX = std::rand() % (texture_width);
+        const int randY = std::rand() % (texture_height);
+        
+        for (int channel = 0; channel < 3; channel++)
+        {
+          imgSetRef(out_pixels, OUTPUT_WIDTH, i, j, getRefIndx(texture_width,randY, randX));
+        }
+      }
+    }
     double startTime = CycleTimer::currentSeconds();
     imagequilt_cuda(texture_width, texture_height, source_pixels, out_pixels);
     double endTime = CycleTimer::currentSeconds();

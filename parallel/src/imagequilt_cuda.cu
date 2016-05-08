@@ -161,23 +161,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   cudaMalloc((void**)&samplesY, samples_size);
 
   cudaMemcpy(source_cuda, source, source_size, cudaMemcpyHostToDevice);
-
-  //first copy random pixels from source to output
-  int seed = 15418;
-  curandState *randStates;
-  cudaMalloc((void**)&randStates, sizeof(curandState)*output_width*output_height);
-  dim3 tempblock(32,32);
-  int widthGrid = output_width*output_height/BLOCK_SIZE/BLOCK_SIZE;
-  dim3 randGrid(BLOCK_SIZE, widthGrid);
-  printf("Lolz %d\n",widthGrid);
-  
-  initRandom<<<randGrid, BLOCK_SIZE>>>(seed, randStates);
-  cudaDeviceSynchronize();
-  kernelRandomOutput<<<randGrid, BLOCK_SIZE>>>(randStates, 
-                                                output_cuda,
-                                                output_width,
-                                                texture_width*texture_height);
-  cudaDeviceSynchronize();
+  cudaMemcpy(output_cuda, output, output_size, cudaMemcpyHostToDevice);
 
   // seam carving: each tile gets 1 block of 32 threads
   dim3 seamCarveBlockDim(POLAR_WIDTH, 1);
@@ -185,6 +169,14 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
 
   dim3 updateBlockDim(TILE_WIDTH / 2, TILE_HEIGHT / 2);
   dim3 updateGridDim(WIDTH_TILES, HEIGHT_TILES, 4);
+
+  //first copy random pixels from source to output
+  int seed = 15418;
+  curandState *randStates;
+  cudaMalloc((void**)&randStates, sizeof(curandState)*num_tiles);
+  
+  initRandom<<<seamCarveGridDim, seamCarveBlockDim>>>(seed, randStates);
+  cudaDeviceSynchronize();
   
   for (int iter = 0; iter < ITERATIONS; iter++)
   {
@@ -192,7 +184,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
     
-    kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+    //kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
    
 
     // activate this when ready
