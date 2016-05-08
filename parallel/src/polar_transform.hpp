@@ -7,6 +7,9 @@
  *  for increased resolution
  */
 
+#ifndef POLAR_TRANSFORM_H
+#define POLAR_TRANSFORM_H
+
 #include "point.hpp"
 
 
@@ -36,3 +39,4 @@ public:
 
 };
 
+#endif
