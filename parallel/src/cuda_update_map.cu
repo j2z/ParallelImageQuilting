@@ -1,25 +1,38 @@
 
-#include "constants.hpp"
-#include "point.hpp"
-#include "util_cu.hpp"
-#include "polar_transform_cu.hpp"
-#include <cuda.h>
+#include "cu_helpers.hpp"
 
-
-__global__ void kernelUpdateMap(int srcWidth, int* map, int mapWidth, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY)
+__global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY)
 {
   
-  int tileX = blockIdx.x;
-  int tileY = blockIdx.y;
-  int pixelX = threadIdx.x - TILE_WIDTH / 2;
-  int pixelY = threadIdx.y - TILE_HEIGHT / 2;
+  int pixelX;
+  int pixelY;
 
-  int tileIdx = tileY * WIDTH_TILES + tileX;
-  int maxDist = MAX_RADIUS * MAX_RADIUS;
-
-  if (pixelX * pixelX + pixelY * pixelY <= maxDist)
+  switch (blockIdx.z)
   {
-    Point polar = PolarTransformationCu(MAX_RADIUS, RADIUS_FACTOR, ANGLE_FACTOR).offsetToPolar(pixelX, pixelY);
+    case 0:
+      pixelX = threadIdx.x - TILE_WIDTH / 2;
+      pixelY = threadIdx.y - TILE_WIDTH / 2;
+      break;
+    case 1:
+      pixelX = threadIdx.x;
+      pixelY = threadIdx.y - TILE_WIDTH / 2;
+      break;
+    case 2:
+      pixelX = threadIdx.x - TILE_WIDTH / 2;
+      pixelY = threadIdx.y;
+      break;
+    case 3:
+      pixelX = threadIdx.x;
+      pixelY = threadIdx.y;
+      break;
+  }
+
+  if (pixelX * pixelX + pixelY * pixelY <= MAX_RADIUS * MAX_RADIUS)
+  {
+    int tileX = blockIdx.x;
+    int tileY = blockIdx.y;
+    int tileIdx = tileY * WIDTH_TILES + tileX;
+    Point polar = offsetToPolar(pixelX, pixelY);
 
     int theta = (int)round(polar.y) % POLAR_HEIGHT;
     int rad = (int)round(polar.x);
@@ -30,7 +43,7 @@ __global__ void kernelUpdateMap(int srcWidth, int* map, int mapWidth, int xOffse
     {
       int imgX = samplesX[tileIdx] + pixelX;
       int imgY = samplesY[tileIdx] + pixelY;
-      imgSetRef(map, mapWidth,
+      imgSetRef(map, OUTPUT_WIDTH,
                 tileY * TILE_WIDTH + threadIdx.y,
                 tileX * TILE_WIDTH + threadIdx.x,
                 imgY * srcWidth + imgX);

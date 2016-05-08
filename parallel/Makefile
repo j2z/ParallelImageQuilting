@@ -2,7 +2,7 @@
 SRCLIST = image_data seam_carve update_map imagequilt_serial main
 #SRCLIST = polar_transform patch_copy sample error_map main
 EXECNAME = ImageQuilt
-CUDASRCLIST = imagequilt_cuda
+CUDASRCLIST = cuda_update_map imagequilt_cuda
 
 
 SRCDIR=src

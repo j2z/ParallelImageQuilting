@@ -16,9 +16,9 @@ inline __device__ Point offsetToPolar(int x, int y)
 {
   Point out;
   // rho
-  out.x = sqrt(x*x + y*y) * RADIUS_FACTOR;
+  out.x = sqrtf(x*x + y*y) * RADIUS_FACTOR;
   // theta
-  out.y = atan2(y,x);
+  out.y = atan2f(y,x);
   if (out.y < 0.f)
   {
     out.y += 2 * M_PI;
@@ -34,8 +34,8 @@ inline __device__ Point polarToOffset(int rho, int theta)
   Point out;
   float rEff = rho / RADIUS_FACTOR;
   float thetaEff = theta / ANGLE_FACTOR;
-  out.x = rEff * cos(thetaEff);
-  out.y = rEff * sin(thetaEff);
+  out.x = rEff * cosf(thetaEff);
+  out.y = rEff * sinf(thetaEff);
   return out;
 }
 
