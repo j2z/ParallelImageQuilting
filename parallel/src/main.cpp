@@ -21,7 +21,8 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
 static inline void disp_help()
 {
   std::cout << "Arg 1: filename of texture image (JPEG)" << std::endl;
-  std::cout << "Arg 2: filename for output file (JPEG)" << std::endl;
+  std::cout << "Arg 2: c for cuda, s for sequential, b for both" << std::endl;
+  std::cout << "Arg 3: num trials (optional)" << std::endl;
 }
 // 2 images of same size 
 //static inline float ssd(CImg<int> im1, CImg<int> im2)
@@ -33,7 +34,7 @@ static inline void disp_help()
 
 int main(int argc, char* argv[])
 {
-  if (argc < 2)
+  if (argc < 3)
   {
     disp_help();
     return 0;
@@ -45,18 +46,31 @@ int main(int argc, char* argv[])
   CImg<unsigned char> texture_image(argv[1]);
   bool run_cuda = false;
   bool run_both = true;
-  if (argc > 2)
+  if(strcmp(argv[2],"c") == 0 || strcmp(argv[2],"C") == 0)
   {
-    if(strcmp(argv[2],"c") == 0 || strcmp(argv[2],"C") == 0)
-    {
-      run_both = false;
-      run_cuda = true;
-    }
-    else if (strcmp(argv[2],"s") == 0 || strcmp(argv[2],"S") == 0)
-    {
-      run_both = false;
-      run_cuda = false;
-    }
+    run_both = false;
+    run_cuda = true;
+  }
+  else if (strcmp(argv[2],"s") == 0 || strcmp(argv[2],"S") == 0)
+  {
+    run_both = false;
+    run_cuda = false;
+  }
+  else if (strcmp(argv[2], "b") == 0 || strcmp(argv[2], "B") == 0)
+  {
+    
+  }
+  else
+  {
+    disp_help();
+    return 0;
+  }
+
+  int numTrials = DEFAULT_TRIALS;
+
+  if (argc > 3)
+  {
+    numTrials = std::atoi(argv[3]);
   }
   
   const int texture_height = texture_image.height();
@@ -74,59 +88,76 @@ int main(int argc, char* argv[])
 
   if (run_both || !run_cuda)
   {
-    printf("Running Serial\n");
-    double startTime = CycleTimer::currentSeconds();
-    //generate white noise image based on random pixels from the original image
-    for (int i = 0; i < OUTPUT_HEIGHT; i++)
+    double totalTime = 0.0;
+    for (int trial = 0; trial < numTrials; trial++)
     {
-      for (int j = 0; j < OUTPUT_WIDTH; j++)
+      printf("Running Serial trial %d\n", trial);
+      double startTime = CycleTimer::currentSeconds();
+      //generate white noise image based on random pixels from the original image
+      for (int i = 0; i < OUTPUT_HEIGHT; i++)
       {
-        const int randX = std::rand() % (texture_width);
-        const int randY = std::rand() % (texture_height);
-        
-        for (int channel = 0; channel < 3; channel++)
+        for (int j = 0; j < OUTPUT_WIDTH; j++)
         {
-          imgSetRef(out_pixels, OUTPUT_WIDTH, i, j, getRefIndx(texture_width,randY, randX));
+          const int randX = std::rand() % (texture_width);
+          const int randY = std::rand() % (texture_height);
+          
+          for (int channel = 0; channel < 3; channel++)
+          {
+            imgSetRef(out_pixels, OUTPUT_WIDTH, i, j, getRefIndx(texture_width,randY, randX));
+          }
         }
       }
+
+      imagequilt_serial(source_pixels, texture_width, texture_height, out_pixels, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+
+      double endTime = CycleTimer::currentSeconds();
+      double trialTime = endTime - startTime;
+      totalTime += trialTime;
+
+      printf("Sequential Trial %d: %.3f ms\n", trial, 1000.f* trialTime);
+
+      generate_output(output, OUTPUT_HEIGHT, OUTPUT_WIDTH, source_pixels, out_pixels);
+      
+      output.save("serial_quilt.jpg", trial, 1);
     }
 
-    imagequilt_serial(source_pixels, texture_width, texture_height, out_pixels, OUTPUT_WIDTH, OUTPUT_HEIGHT);
-
-    double endTime = CycleTimer::currentSeconds();
-    seqTime = endTime - startTime;
-    printf("Sequential Time: %.3f ms\n", 1000.f* seqTime);
-
-    generate_output(output, OUTPUT_HEIGHT, OUTPUT_WIDTH, source_pixels, out_pixels);
-    
-    output.save("serial_quilt.jpg");
+    seqTime = totalTime / numTrials;
+    printf("Average Sequential Time: %.3f ms\n", 1000.f* seqTime);
   }
 
   if (run_both || run_cuda)
   {
-    printf("Running in CUDA\n");
-    for (int i = 0; i < OUTPUT_HEIGHT; i++)
+    double totalTime = 0.0;
+    for (int trial = 0; trial < numTrials; trial++)
     {
-      for (int j = 0; j < OUTPUT_WIDTH; j++)
+      printf("Running CUDA trial %d\n", trial);
+      double startTime = CycleTimer::currentSeconds();
+      for (int i = 0; i < OUTPUT_HEIGHT; i++)
       {
-        const int randX = std::rand() % (texture_width);
-        const int randY = std::rand() % (texture_height);
-        
-        for (int channel = 0; channel < 3; channel++)
+        for (int j = 0; j < OUTPUT_WIDTH; j++)
         {
-          imgSetRef(out_pixels, OUTPUT_WIDTH, i, j, getRefIndx(texture_width,randY, randX));
+          const int randX = std::rand() % (texture_width);
+          const int randY = std::rand() % (texture_height);
+          
+          for (int channel = 0; channel < 3; channel++)
+          {
+            imgSetRef(out_pixels, OUTPUT_WIDTH, i, j, getRefIndx(texture_width,randY, randX));
+          }
         }
       }
+      imagequilt_cuda(texture_width, texture_height, source_pixels, out_pixels);
+      double endTime = CycleTimer::currentSeconds();
+      double trialTime = endTime - startTime;
+      totalTime += endTime - startTime;
+
+      printf("CUDA Trial %d: %.3f ms\n", trial, 1000.f* trialTime);
+
+      generate_output(output, OUTPUT_HEIGHT, OUTPUT_WIDTH, source_pixels, out_pixels);
+
+      output.save("cuda_quilt.jpg", trial, 1);
     }
-    double startTime = CycleTimer::currentSeconds();
-    imagequilt_cuda(texture_width, texture_height, source_pixels, out_pixels);
-    double endTime = CycleTimer::currentSeconds();
-    cudaTime = endTime - startTime;
-    printf("CUDA Time: %.3f ms\n", 1000.f* cudaTime);
-
-    generate_output(output, OUTPUT_HEIGHT, OUTPUT_WIDTH, source_pixels, out_pixels);
-
-    output.save("cuda_quilt.jpg");
+    cudaTime = totalTime / numTrials;
+    printf("Average CUDA Time: %.3f ms\n", 1000.f* cudaTime);
   }
 
   if (run_both)
@@ -134,6 +165,5 @@ int main(int argc, char* argv[])
     double speedup = seqTime/cudaTime;
     printf("Speedup: %.3f\n", speedup);
   
-
   }
 }
