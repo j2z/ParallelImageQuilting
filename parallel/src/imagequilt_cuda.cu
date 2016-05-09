@@ -269,28 +269,34 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   cudaMalloc((void**)&randStates, sizeof(curandState)*num_tiles);
   
   initRandom<<<seamCarveGridDim, seamCarveBlockDim>>>(seed, randStates);
-  cudaDeviceSynchronize();
   
   for (int iter = 0; iter < ITERATIONS; iter++)
   {
+    cudaDeviceSynchronize();
+    
     //choose random grid alignment
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
     
     kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
    
-
+    cudaDeviceSynchronize();
     // activate this when ready
     
     kernelUpdateMap<<<updateGridDim, updateBlockDim>>>
       (texture_width, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
   }
 
+  cudaDeviceSynchronize();
+
   cudaMemcpy(output, output_cuda, output_size, cudaMemcpyDeviceToHost);
 
   cudaFree(randStates);
   cudaFree(source_cuda);
   cudaFree(output_cuda);
+  cudaFree(min_paths);
+  cudaFree(samplesX);
+  cudaFree(samplesY);
 }
 
 
