@@ -14,7 +14,7 @@ CC=g++ -m64
 CFLAGS=-I $(INCDIR) -O3 -Wall
 GHCLIBS=-L/usr/X11R6/lib -L/usr/local/depot/cuda-6.5/lib64/
 LATEDAYSLIBS=-L/usr/X11R6/lib -L/usr/local/cuda/lib64/
-LFLAGS=-lm -lpthread -lX11 -L/usr/local/cuda/lib64/ -lcudart
+LFLAGS=-lm -lpthread -lX11 -lcudart
 NVCC=nvcc -arch=sm_20
 NVCCFLAGS=-O3 -m64
 
