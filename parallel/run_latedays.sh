@@ -4,7 +4,7 @@
 
 cd $SCRATCH
 
-execdir=/home/ParallelImageQuilting/parallel
+execdir=/home/zherengz/ParallelImageQuilting/parallel
 exe=ImageQuilt
 
 # change this for image
