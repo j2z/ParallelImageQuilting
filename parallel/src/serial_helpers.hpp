@@ -132,4 +132,6 @@ void update_map(MappingData&, int[POLAR_HEIGHT]);
 void imagequilt_serial(unsigned char*, int, int, int*, int, int);
 
 
+float test_rejection_rate(unsigned char*, int, int, int*, int, int);
+
 #endif

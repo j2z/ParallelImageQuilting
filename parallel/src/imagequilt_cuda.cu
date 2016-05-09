@@ -86,7 +86,7 @@ __global__ void kernelRandomOutput(curandState* states, int* output, int output_
 
 
 
-__global__ void kernelFindBoundaries(curandState* states, unsigned char* source, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY)
+__global__ void kernelFindBoundaries(curandState* states, unsigned char* source, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, char* minPaths, bool* improvements, short* samplesX, short* samplesY)
 {
   int tileIdx = blockIdx.y * WIDTH_TILES + blockIdx.x;
   int idX = tileIdx * POLAR_WIDTH + threadIdx.x;
@@ -213,7 +213,7 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
     __syncthreads();
   }
 
-  if (scratch2[0] == colIdx && previousRow[0] < 1.0)
+  if (scratch2[0] == colIdx && previousRow[0] < 0.f)
   {
     char index = colIdx;
     for (int step = POLAR_HEIGHT - 1; step >= 0; step--)
@@ -221,11 +221,16 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
       minPaths[tileIdx*POLAR_HEIGHT + step] = index;
       index = backPointers[step][index];
     }
+    improvements[tileIdx] = true;
+  }
+  else
+  {
+    improvements[tileIdx] = false;
   }
 
 }
 
-__global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY);
+__global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset, char* minPaths, bool* improvements, short* samplesX, short* samplesY);
 
 
 void imagequilt_cuda(int texture_width, int texture_height, unsigned char* source, int* output)
@@ -237,6 +242,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   char* min_paths;
   short* samplesX;
   short* samplesY;
+  bool* improvements;
 
   int output_height = (HEIGHT_TILES + 1)*TILE_HEIGHT;
   int output_width = (WIDTH_TILES + 1)*TILE_WIDTH;
@@ -246,12 +252,15 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   size_t output_size = sizeof(int)*output_width*output_height;
   size_t paths_size = sizeof(unsigned char)*POLAR_HEIGHT*num_tiles;
   size_t samples_size = sizeof(short)*num_tiles;
+  size_t improvements_size = sizeof(bool) * num_tiles;
 
   cudaMalloc((void**)&source_cuda, source_size);
   cudaMalloc((void**)&output_cuda, output_size);
   cudaMalloc((void**)&min_paths, paths_size);
   cudaMalloc((void**)&samplesX, samples_size);
   cudaMalloc((void**)&samplesY, samples_size);
+  cudaMalloc((void**)&improvements, improvements_size);
+
 
   cudaMemcpy(source_cuda, source, source_size, cudaMemcpyHostToDevice);
   cudaMemcpy(output_cuda, output, output_size, cudaMemcpyHostToDevice);
@@ -264,7 +273,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   dim3 updateGridDim(WIDTH_TILES, HEIGHT_TILES, 4);
 
   //first copy random pixels from source to output
-  int seed = 15418;
+  int seed = time(NULL);
   curandState *randStates;
   cudaMalloc((void**)&randStates, sizeof(curandState)*num_tiles);
   
@@ -278,13 +287,13 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
     
-    kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+    kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, improvements, samplesX, samplesY);
    
     cudaDeviceSynchronize();
     // activate this when ready
     
     kernelUpdateMap<<<updateGridDim, updateBlockDim>>>
-      (texture_width, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+      (texture_width, output_cuda, offsetX, offsetY, min_paths, improvements, samplesX, samplesY);
   }
 
   cudaDeviceSynchronize();
@@ -297,6 +306,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   cudaFree(min_paths);
   cudaFree(samplesX);
   cudaFree(samplesY);
+  cudaFree(improvements);
 }
 
 

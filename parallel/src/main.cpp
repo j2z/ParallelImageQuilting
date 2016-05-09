@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
   CImg<unsigned char> texture_image(argv[1]);
   bool run_cuda = false;
   bool run_both = true;
+  bool rejection_rate = false;
   if(strcmp(argv[2],"c") == 0 || strcmp(argv[2],"C") == 0)
   {
     run_both = false;
@@ -55,6 +56,10 @@ int main(int argc, char* argv[])
   {
     run_both = false;
     run_cuda = false;
+  }
+  else if (strcmp(argv[2],"r") == 0)
+  {
+    rejection_rate = true;
   }
   else if (strcmp(argv[2], "b") == 0 || strcmp(argv[2], "B") == 0)
   {
@@ -82,6 +87,34 @@ int main(int argc, char* argv[])
   int* out_pixels = (int *)malloc(sizeof(int)*OUTPUT_HEIGHT*OUTPUT_WIDTH);
 
   interleave_colors(source_pixels, texture_height, texture_width, texture_image);
+
+  if (rejection_rate)
+  {
+    //generate white noise image based on random pixels from the original image
+    for (int i = 0; i < OUTPUT_HEIGHT; i++)
+    {
+      for (int j = 0; j < OUTPUT_WIDTH; j++)
+      {
+        const int randX = std::rand() % (texture_width);
+        const int randY = std::rand() % (texture_height);
+        
+        for (int channel = 0; channel < 3; channel++)
+        {
+          imgSetRef(out_pixels, OUTPUT_WIDTH, i, j, getRefIndx(texture_width,randY, randX));
+        }
+      }
+    }
+
+    float rr = test_rejection_rate(source_pixels, texture_width, texture_height, out_pixels, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+
+    printf("Total rejection rate: %f\n", rr);
+
+    generate_output(output, OUTPUT_HEIGHT, OUTPUT_WIDTH, source_pixels, out_pixels);
+    
+    output.save("serial_quilt.jpg");
+    return 0;
+  }
+
 
   double seqTime = 1;
   double cudaTime = 1;

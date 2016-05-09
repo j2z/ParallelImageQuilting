@@ -1,9 +1,18 @@
 
 #include "cu_helpers.hpp"
 
-__global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY)
+__global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset, char* minPaths, bool* improvements, short* samplesX, short* samplesY)
 {
   
+  int tileX = blockIdx.x;
+  int tileY = blockIdx.y;
+  int tileIdx = tileY * WIDTH_TILES + tileX;
+
+  if (!improvements[tileIdx])
+  {
+    return;
+  }
+
   int pixelX;
   int pixelY;
 
@@ -29,9 +38,6 @@ __global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset
 
   if (pixelX * pixelX + pixelY * pixelY <= MAX_RADIUS * MAX_RADIUS)
   {
-    int tileX = blockIdx.x;
-    int tileY = blockIdx.y;
-    int tileIdx = tileY * WIDTH_TILES + tileX;
     Point polar = offsetToPolar(pixelX, pixelY);
 
     int theta = (int)round(polar.y) % POLAR_HEIGHT;

@@ -7,7 +7,7 @@
 #include <iostream>
 
 #define MAX_JUMP 1
-#define IMPROVE_THRESH 10.f
+#define IMPROVE_THRESH 0.f
 
 // pass in an array for the polar coordinate error map
 // with constants defined in constants.hpp
@@ -25,11 +25,10 @@ bool seam_carve(MappingData& mapping, int seam[POLAR_HEIGHT])
   float existingError = 0.0;
   for (int rho = 0; rho < POLAR_WIDTH; rho++)
   {
+    existingError += existing_error(mapping, rho, 0);
     // total error = h + v - epsilon
     // we don't use v currently
     currentRow[rho] = horiz_error(mapping, rho, 0) - existingError;
-
-    existingError += existing_error(mapping, rho, 0);
   }
 
   // backpointers array
@@ -46,6 +45,8 @@ bool seam_carve(MappingData& mapping, int seam[POLAR_HEIGHT])
 
     for (int rho = 0; rho < POLAR_WIDTH; rho++)
     {
+      existingError += existing_error(mapping, rho, theta);
+      
       // find the min from the previous row
       int minIndex = -1;
       float minVal = 0.0;
@@ -63,7 +64,6 @@ bool seam_carve(MappingData& mapping, int seam[POLAR_HEIGHT])
 
       currentRow[rho] = minVal + horiz_error(mapping, rho, theta) - existingError;
       backPointers[theta][rho] = minIndex;
-      existingError += existing_error(mapping, rho, theta);
     }
 
     // put current into previous, use the memory in previous as the new current
@@ -97,7 +97,7 @@ bool seam_carve(MappingData& mapping, int seam[POLAR_HEIGHT])
   }
 
   // if the seams we cover up don't outweigh the cost of the new seam
-  if (minVal > IMPROVE_THRESH)
+  if (minVal >= IMPROVE_THRESH)
   {
     return false;
   }
