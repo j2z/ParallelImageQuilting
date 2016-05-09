@@ -75,22 +75,13 @@ sharedMemExclusiveScan(int threadIndex, float* sInput, float* sOutput, volatile 
 
 __global__ void initRandom(unsigned int seed, curandState* states)
 {
-  int idX = (blockIdx.y*BLOCK_SIZE + blockIdx.x) * BLOCK_SIZE + threadIdx.x;
-  curand_init(seed, idX,0,&states[idX]);
+  int idX = blockIdx.x * 64 + threadIdx.x;
+  curand_init(seed, idX, 0, states + idX);
 }
-
-__global__ void kernelRandomOutput(curandState* states, int* output, int output_width, int source_size)
-{
-  int idX = (blockIdx.y*BLOCK_SIZE + blockIdx.x) * BLOCK_SIZE + threadIdx.x;
-  output[idX] = curand(&states[idX]) % source_size;
-}
-
-
 
 __global__ void kernelFindBoundaries(curandState* states, unsigned char* source, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, char* minPaths, bool* improvements, short* samplesX, short* samplesY)
 {
   int tileIdx = blockIdx.y * WIDTH_TILES + blockIdx.x;
-  int idX = tileIdx * POLAR_WIDTH + threadIdx.x;
 
   int tileX = blockIdx.x;
   int tileY = blockIdx.y;
@@ -107,8 +98,8 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
 
   if (colIdx == 0)
   {
-    samplesX[tileIdx] = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
-    samplesY[tileIdx] = curand(&states[idX]) % (sourceHeight - 2*MAX_RADIUS) + MAX_RADIUS;
+    samplesX[tileIdx] = curand(states + tileIdx) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
+    samplesY[tileIdx] = curand(states + tileIdx) % (sourceHeight - 2*MAX_RADIUS) + MAX_RADIUS;
 
     mapping.src = source;
     mapping.srcWidth = sourceWidth;
@@ -118,13 +109,18 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
     mapping.mapWidth = OUTPUT_WIDTH;
     mapping.mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
     mapping.mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
+    //printf("here3\n");
   }
   __syncthreads();
-  
+ 
+  //printf("here2\n"); 
+
   existingErrors[colIdx] = -existing_error(mapping, colIdx, 0);
   
   __syncthreads();
 
+  //printf("here\n");
+  
   float* currentRow = array1;
   // populates currentRow with the negative sum of existing errors
   // (not including current)
@@ -134,6 +130,7 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
   
   float* previousRow = currentRow;
   currentRow = array2;
+
 
 
   for (int theta = 1; theta < POLAR_HEIGHT; theta++)
@@ -280,11 +277,15 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   dim3 updateGridDim(WIDTH_TILES, HEIGHT_TILES, 4);
 
   //first copy random pixels from source to output
-  int seed = time(NULL);
+  int seed = 100;
+  int randSize = (num_tiles + 63) / 64 * 64;
   curandState *randStates;
-  cudaMalloc((void**)&randStates, sizeof(curandState)*num_tiles);
+  cudaMalloc((void**)&randStates, sizeof(curandState)*randSize);
   
-  initRandom<<<seamCarveGridDim, seamCarveBlockDim>>>(seed, randStates);
+  dim3 randBlockDim(64,1,1);
+  dim3 randGridDim(randSize/64,1,1);
+
+  initRandom<<<randGridDim, randBlockDim>>>(seed, randStates);
  
   //double startTime = CycleTimer::currentSeconds();
   //double diff = startTime - initStart;
@@ -298,14 +299,16 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     //choose random grid alignment
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
+   
     
     kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, improvements, samplesX, samplesY);
-   
+    
+
     cudaDeviceSynchronize();
     
     kernelUpdateMap<<<updateGridDim, updateBlockDim>>>
       (texture_width, output_cuda, offsetX, offsetY, min_paths, improvements, samplesX, samplesY);
-    
+
     //cudaDeviceSynchronize();
     //double endTime = CycleTimer::currentSeconds();
     //double trialTime = endTime - startTime;
@@ -314,7 +317,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   }
 
   cudaDeviceSynchronize();
-
+  
   cudaMemcpy(output, output_cuda, output_size, cudaMemcpyDeviceToHost);
 
   cudaFree(randStates);

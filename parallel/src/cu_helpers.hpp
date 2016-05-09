@@ -9,6 +9,8 @@
 #include "mapping.hpp"
 #include "constants.hpp"
 
+#include <cstdio>
+
 #define ETA 10.f
 
 // Transforms offsets to whereever the center is defined into polar
@@ -105,6 +107,7 @@ inline __device__ float existing_error(MappingData& mapping, int rho, int theta)
 
   int src1X = refIndexCol(mapping.srcWidth, dst1Offset);
   int src1Y = refIndexRow(mapping.srcWidth, dst1Offset);
+
 
 
   ColorCu dstColor1 = imgGetColor(mapping.src, dst1Offset);
