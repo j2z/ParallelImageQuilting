@@ -11,11 +11,11 @@ __global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset
   {
     case 0:
       pixelX = threadIdx.x - TILE_WIDTH / 2;
-      pixelY = threadIdx.y - TILE_WIDTH / 2;
+      pixelY = threadIdx.y - TILE_HEIGHT / 2;
       break;
     case 1:
       pixelX = threadIdx.x;
-      pixelY = threadIdx.y - TILE_WIDTH / 2;
+      pixelY = threadIdx.y - TILE_HEIGHT / 2;
       break;
     case 2:
       pixelX = threadIdx.x - TILE_WIDTH / 2;
@@ -44,8 +44,8 @@ __global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset
       int imgX = samplesX[tileIdx] + pixelX;
       int imgY = samplesY[tileIdx] + pixelY;
       imgSetRef(map, OUTPUT_WIDTH,
-                tileY * TILE_WIDTH + threadIdx.y,
-                tileX * TILE_WIDTH + threadIdx.x,
+                tileY * TILE_HEIGHT + pixelY + TILE_HEIGHT / 2 + yOffset,
+                tileX * TILE_WIDTH + pixelX + TILE_WIDTH / 2 + xOffset,
                 imgY * srcWidth + imgX);
     }
 

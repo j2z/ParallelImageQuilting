@@ -84,6 +84,8 @@ __global__ void kernelRandomOutput(curandState* states, int* output, int output_
   output[idX] = curand(&states[idX]) % source_size;
 }
 
+
+
 __global__ void kernelFindBoundaries(curandState* states, unsigned char* source, int sourceWidth, int sourceHeight, int* output, int xOffset, int yOffset, char* minPaths, short* samplesX, short* samplesY)
 {
   int tileIdx = blockIdx.y * WIDTH_TILES + blockIdx.x;
@@ -95,39 +97,131 @@ __global__ void kernelFindBoundaries(curandState* states, unsigned char* source,
   
   __shared__ float array1[POLAR_WIDTH];
   __shared__ float array2[POLAR_WIDTH];
-  __shared__ char back_pointers[POLAR_HEIGHT][POLAR_WIDTH];
+  __shared__ char backPointers[POLAR_HEIGHT][POLAR_WIDTH];
 
   __shared__ float scratch[POLAR_WIDTH];
-  __shared__ float scanOut[POLAR_WIDTH];
+  __shared__ float existingErrors[POLAR_WIDTH];
+
+  __shared__ MappingData mapping;
 
   if (colIdx == 0)
   {
     samplesX[tileIdx] = curand(&states[idX]) % (sourceWidth - 2*MAX_RADIUS) + MAX_RADIUS;
     samplesY[tileIdx] = curand(&states[idX]) % (sourceHeight - 2*MAX_RADIUS) + MAX_RADIUS;
+
+    mapping.src = source;
+    mapping.srcWidth = sourceWidth;
+    mapping.srcX = samplesX[tileIdx];
+    mapping.srcY = samplesY[tileIdx];
+    mapping.map = output;
+    mapping.mapWidth = OUTPUT_WIDTH;
+    mapping.mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
+    mapping.mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
   }
   __syncthreads();
-
-  int srcX = samplesX[tileIdx];
-  int srcY = samplesY[tileIdx];
-
-  int mapX = tileX * TILE_WIDTH + TILE_WIDTH / 2 + xOffset;
-  int mapY = tileY * TILE_HEIGHT + TILE_HEIGHT / 2 + yOffset;
-
-  float* current_array = array1;
-  current_array[colIdx] = colIdx;
-  __syncthreads();
-  sharedMemExclusiveScan(colIdx, current_array, scanOut, scratch, POLAR_WIDTH);
   
+  existingErrors[colIdx] = -existing_error(mapping, colIdx, 0);
+  
+  __syncthreads();
 
-  //ErrorFunctionCu errFunc(source, sourceWidth, srcX, srcY, output, OUTPUT_WIDTH, mapX, mapY, PolarTransformation(MAX_RADIUS, RADIUS_FACTOR, ANGLE_FACTOR));
+  float* currentRow = array1;
+  // populates currentRow with the negative sum of existing errors
+  // (not including current)
+  sharedMemExclusiveScan(colIdx, existingErrors, currentRow, scratch, POLAR_WIDTH);
 
-  for (int i = 0; i < POLAR_HEIGHT; i++)
+  currentRow[colIdx] += horiz_error(mapping, colIdx, 0) + existingErrors[colIdx];
+  
+  float* previousRow = currentRow;
+  currentRow = array2;
+
+
+  for (int theta = 1; theta < POLAR_HEIGHT; theta++)
   {
+    existingErrors[colIdx] = -existing_error(mapping, colIdx, theta);
+
+    __syncthreads();
+    
+    // populates currentRow with the negative sum of existing errors
+    // (not including current)
+    sharedMemExclusiveScan(colIdx, existingErrors, currentRow, scratch, POLAR_WIDTH);
+
+    char minTry = -1;
+    float minVal = 0.f;
+    for (char arg = colIdx - 1; arg <= colIdx + 1; arg++)
+    {
+      if (arg >= 0 && arg < POLAR_WIDTH)
+      {
+        if (minTry == -1 || previousRow[arg] < minVal)
+        {
+          minTry = arg;
+          minVal = previousRow[arg];
+        }
+      }
+    }
+    currentRow[colIdx] += minVal + horiz_error(mapping, colIdx, theta) + existingErrors[colIdx];
+    backPointers[theta][colIdx] = minTry;
+    
+    float* temp = previousRow;
+    previousRow = currentRow;
+    currentRow = temp;
+
   }
-  
-  ColorCu color(3.f,4.f,5.f);
-  array1[threadIdx.x] = color.red;
-  array2[threadIdx.x] = colorSqDiff(color, color);
+
+  // at this point, previousRow stores the seam costs
+
+  int* scratch2 = (int*)scratch;
+
+  int index = backPointers[POLAR_HEIGHT - 1][colIdx];
+  for (int step = POLAR_HEIGHT - 2; step > 0; step--)
+  {
+    index = backPointers[step][index];
+  }
+  if (index == colIdx)
+  {
+    scratch2[colIdx] = colIdx;
+  }
+  else
+  {
+    scratch2[colIdx] = -1;
+  }
+
+  __syncthreads();
+
+  // do a reduction
+  for (int s = 1; s < POLAR_WIDTH; s*=2)
+  {
+    if (colIdx % (2 * s) == 0)
+    {
+      if (scratch2[colIdx] == -1)
+      {
+        if (scratch2[colIdx + s] != -1)
+        {
+          scratch2[colIdx] = scratch2[colIdx + s];
+          previousRow[colIdx] = previousRow[colIdx + s];
+        }
+      }
+      else
+      {
+        if (scratch2[colIdx+s] != -1 &&
+              previousRow[colIdx+s] < previousRow[colIdx])
+        {
+          scratch2[colIdx] = scratch2[colIdx + s];
+          previousRow[colIdx] = previousRow[colIdx + s];
+        }
+      }
+    }
+    __syncthreads();
+  }
+
+  if (scratch2[0] == colIdx && previousRow[0] < 1.0)
+  {
+    char index = colIdx;
+    for (int step = POLAR_HEIGHT - 1; step >= 0; step--)
+    {
+      minPaths[tileIdx*POLAR_HEIGHT + step] = index;
+      index = backPointers[step][index];
+    }
+  }
 
 }
 
@@ -146,7 +240,6 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
 
   int output_height = (HEIGHT_TILES + 1)*TILE_HEIGHT;
   int output_width = (WIDTH_TILES + 1)*TILE_WIDTH;
-  int tile_size = TILE_HEIGHT*TILE_WIDTH;
   int num_tiles = HEIGHT_TILES*WIDTH_TILES;
 
   size_t source_size = sizeof(unsigned char)*texture_width*texture_height*3;
@@ -184,14 +277,13 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     const int offsetX = std::rand() % TILE_WIDTH;
     const int offsetY = std::rand() % TILE_HEIGHT;
     
-    //kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+    kernelFindBoundaries<<<seamCarveGridDim, seamCarveBlockDim>>>(randStates, source_cuda, texture_width, texture_height, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
    
 
     // activate this when ready
-    /*
+    
     kernelUpdateMap<<<updateGridDim, updateBlockDim>>>
       (texture_width, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
-      */
   }
 
   cudaMemcpy(output, output_cuda, output_size, cudaMemcpyDeviceToHost);
