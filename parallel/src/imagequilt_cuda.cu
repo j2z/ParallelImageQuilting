@@ -277,7 +277,7 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   dim3 updateGridDim(WIDTH_TILES, HEIGHT_TILES, 4);
 
   //first copy random pixels from source to output
-  int seed = 100;
+  int seed = time(NULL);
   int randSize = (num_tiles + 63) / 64 * 64;
   curandState *randStates;
   cudaMalloc((void**)&randStates, sizeof(curandState)*randSize);

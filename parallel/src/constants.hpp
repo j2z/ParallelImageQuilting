@@ -19,8 +19,8 @@
 #define RADIUS_FACTOR (POLAR_WIDTH * 1.f / MAX_RADIUS)
 
 
-#define HEIGHT_TILES 60
-#define WIDTH_TILES 100
+#define HEIGHT_TILES 10
+#define WIDTH_TILES 15
 
 #define OUTPUT_HEIGHT (TILE_HEIGHT * (HEIGHT_TILES + 1))
 #define OUTPUT_WIDTH (TILE_WIDTH * (WIDTH_TILES + 1))
@@ -28,7 +28,7 @@
 // MAX_RADIUS acts as the amount of padding
 
 #define DEFAULT_TRIALS 5
-#define ITERATIONS 50
+#define ITERATIONS 1000
 
 #endif
 
