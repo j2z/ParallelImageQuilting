@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <ctime>
 #include "cu_helpers.hpp"
+#include "CycleTimer.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -230,6 +231,7 @@ __global__ void kernelUpdateMap(int srcWidth, int* map, int xOffset, int yOffset
 
 void imagequilt_cuda(int texture_width, int texture_height, unsigned char* source, int* output)
 {
+  double initStart = CycleTimer::currentSeconds();
   //initialize CUDA global memory
   unsigned char* source_cuda;
   int* output_cuda;
@@ -256,6 +258,11 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   cudaMemcpy(source_cuda, source, source_size, cudaMemcpyHostToDevice);
   cudaMemcpy(output_cuda, output, output_size, cudaMemcpyHostToDevice);
 
+  double copyEndTime = CycleTimer::currentSeconds();
+  double copyTime = copyEndTime - initStart;
+  printf("Mem Time: %.3f ms\n", 1000.f*copyTime);
+
+
   // seam carving: each tile gets 1 block of 32 threads
   dim3 seamCarveBlockDim(POLAR_WIDTH, 1);
   dim3 seamCarveGridDim(WIDTH_TILES, HEIGHT_TILES, 1);
@@ -269,7 +276,12 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
   cudaMalloc((void**)&randStates, sizeof(curandState)*num_tiles);
   
   initRandom<<<seamCarveGridDim, seamCarveBlockDim>>>(seed, randStates);
-  
+ 
+  double startTime = CycleTimer::currentSeconds();
+  double diff = startTime - initStart;
+  printf("Initialization time: %.3f ms\n", 1000.f*diff);
+
+
   for (int iter = 0; iter < ITERATIONS; iter++)
   {
     cudaDeviceSynchronize();
@@ -285,6 +297,11 @@ void imagequilt_cuda(int texture_width, int texture_height, unsigned char* sourc
     
     kernelUpdateMap<<<updateGridDim, updateBlockDim>>>
       (texture_width, output_cuda, offsetX, offsetY, min_paths, samplesX, samplesY);
+    cudaDeviceSynchronize();
+    double endTime = CycleTimer::currentSeconds();
+    double trialTime = endTime - startTime;
+    startTime = endTime;
+    printf("Iteration %d: %.3f ms\n", iter, 1000.f*trialTime);
   }
 
   cudaDeviceSynchronize();
